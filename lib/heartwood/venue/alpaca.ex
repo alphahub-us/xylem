@@ -35,17 +35,18 @@ defmodule Heartwood.Venue.Alpaca do
   """
   use Axil
 
+  @conn [host: "api.alpaca.markets", path: "/stream", port: 443]
+
   @behaviour Heartwood.Venue
 
   @impl Heartwood.Venue
-  def topic(_pid, name: name), do: get_topic(name)
+  def topic(name: name), do: get_topic(name)
 
   def start_link(config) do
     with {:ok, env} <- Keyword.fetch(config, :env),
-         {:ok, _credentials} <- Keyword.fetch(config, :credentials) do
-      state = Enum.into(Keyword.take(config, [:credentials, :name]), %{})
-      connect_opts = [host: host(env), path: "/stream", port: 443]
-      Axil.start_link(connect_opts, __MODULE__, state)
+         {:ok, _creds} <- Keyword.fetch(config, :credentials) do
+      state = Enum.into(Keyword.take(config, [:name, :credentials]), %{})
+      Axil.start_link(Keyword.merge(@conn, host: host(env)), __MODULE__, state)
     else
       :error -> {:error, :bad_config}
     end

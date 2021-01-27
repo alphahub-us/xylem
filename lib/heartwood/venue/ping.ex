@@ -5,7 +5,7 @@ defmodule Heartwood.Venue.Ping do
   @behaviour Heartwood.Venue
 
   @impl Heartwood.Venue
-  def topic(_pid, name: name) do
+  def topic(name: name) do
     "venue:#{name}"
   end
 

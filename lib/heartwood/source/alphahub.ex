@@ -37,19 +37,23 @@ defmodule Heartwood.Source.AlphaHub do
 
   use Axil
 
+  @conn [host: "alphahub.us", path: "/", port: 443]
+
   @behaviour Heartwood.Source
 
   @impl Heartwood.Source
-  def topic(_pid, id: id), do: get_topic(id)
+  def topic(id: id), do: get_topic(id)
 
   def start_link(config) do
     with {:ok, credentials} <- Keyword.fetch(config, :credentials),
-         {:ok, ids} <- Keyword.fetch(config, :ids),
-         {:ok, tokens} = Client.create_session(credentials) do
+         {:ok, _ids} <- Keyword.fetch(config, :ids),
+         {:ok, tokens} <- Client.create_session(credentials) do
       path = "/socket/websocket?api_token=#{tokens["token"]}&vsn=2.0.0"
-      Axil.start_link([host: "alphahub.us", port: 443, path: path], __MODULE__, %{tokens: tokens, ids: ids})
+      state = Enum.into(Keyword.take(config, [:ids, :credentials]), %{})
+      Axil.start_link(Keyword.merge(@conn, path: path), __MODULE__, state)
     else
       :error -> {:error, :bad_args}
+      error = {:error, _} -> error
     end
   end
 
