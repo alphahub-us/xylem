@@ -7,7 +7,7 @@ defmodule Heartwood.Bot do
     name
     |> Heartwood.Registry.lookup()
     |> case do
-      {pid, module} -> apply(module, :topic, [pid, options])
+      {_pid, module} -> apply(module, :topic, [options])
       _ -> apply(name, :topic, [options])
     end
     |> List.wrap()
@@ -15,4 +15,7 @@ defmodule Heartwood.Bot do
   end
 
   def subscribe(module), do: subscribe({module, []})
+
+  @spec subscribe(pid | module, keyword) :: [:ok | {:error, term}]
+  def subscribe(name, options), do: subscribe({name, options})
 end

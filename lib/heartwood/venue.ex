@@ -6,12 +6,8 @@ defmodule Heartwood.Venue do
 
   @doc """
   Retrieves the topic or topics for a venue, provided the given options.
-
-  Venues that use processes should implement `topic/2`. Other venues should
-  implement `topic/1`.
   """
   @callback topic(options :: keyword) :: String.t | [String.t]
-  @callback topic(venue :: pid, options :: keyword) :: String.t | [String.t]
 
-  @optional_callbacks topic: 1, topic: 2
+  @optional_callbacks topic: 1
 end
