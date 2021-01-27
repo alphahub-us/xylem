@@ -1,12 +1,10 @@
 defmodule Heartwood.Source.AlphaHub do
-
   @moduledoc """
   The AlphaHub source
 
   A WebSockets client that listens on the AlphaHub channel for new signals.
 
   ### Configuration
-
 
   To use this source, you pass in your credentials and the IDs of the
   algorithms you wish to monitor via your configuration file:
@@ -68,7 +66,7 @@ defmodule Heartwood.Source.AlphaHub do
     |> Jason.decode()
     |> case do
       {:ok, [_, _, "algorithms:" <> id, "new_signals", signals]} ->
-        Heartwood.Channel.broadcast(get_topic(id), format(signals))
+        Heartwood.Channel.broadcast(get_topic(id), {:source, format(signals)})
       {:ok, [_, _, _topic, "phx_reply", %{ "status" => "ok" }]} ->
         :ok
       {:ok, message} ->
