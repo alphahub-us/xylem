@@ -42,7 +42,7 @@ defmodule Heartwood.Source.AlphaHub do
   @behaviour Heartwood.Source
 
   @impl Heartwood.Source
-  def topic(_pid, id: id), do: "alphahub:#{id}"
+  def topic(_pid, id: id), do: get_topic(id)
 
   def start_link(config) do
     with {:ok, credentials} <- Keyword.fetch(config, :credentials),
@@ -67,10 +67,14 @@ defmodule Heartwood.Source.AlphaHub do
     content
     |> Jason.decode()
     |> case do
-      {:ok, [_, _, "algorithms:" <> id, "new_signals", signals]} -> Heartwood.Channel.broadcast("alphahub:#{id}", format(signals))
-      {:ok, [_, _, _topic, "phx_reply", %{ "status" => "ok" }]} -> :ok
-      {:ok, message} -> IO.inspect(message)
-      {:error, _} -> IO.inspect(content)
+      {:ok, [_, _, "algorithms:" <> id, "new_signals", signals]} ->
+        Heartwood.Channel.broadcast(get_topic(id), format(signals))
+      {:ok, [_, _, _topic, "phx_reply", %{ "status" => "ok" }]} ->
+        :ok
+      {:ok, message} ->
+        IO.inspect(message)
+      {:error, _} ->
+        IO.inspect(content)
     end
     {:nosend, state}
   end
@@ -99,6 +103,7 @@ defmodule Heartwood.Source.AlphaHub do
     {:send, json_frame([nil, nil, "phoenix", "heartbeat", %{}]), state}
   end
 
+  defp get_topic(id), do: "alphahub:#{id}"
   defp json_frame(contents), do: {:text, Jason.encode!(contents)}
   defp format(signals), do: signals
 end
