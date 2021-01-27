@@ -1,9 +1,8 @@
 import Config
 
 config :heartwood,
-  venues: [
-    ping: {Heartwood.Venue.Ping, delay: 5}
-  ],
   bots: [
-    {Heartwood.Bot.Echo, venue: :ping, source: Heartwood.Source.IEx, market: Heartwood.Market.IEx}
+    sandbox: {Heartwood.Bot.Echo, venue: Heartwood.Venue.IEx, source: Heartwood.Source.IEx, market: Heartwood.Market.IEx}
   ]
+
+import_config "#{Mix.env()}.exs"

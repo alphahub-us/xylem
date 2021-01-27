@@ -25,3 +25,6 @@ heartwood-*.tar
 
 # Temporary files for e.g. tests
 /tmp
+
+# custom config files, which might contain sensitive information
+config/*.config.exs
