@@ -2,14 +2,14 @@ defmodule Heartwood.Source.AlphaHub.Client do
 
   use Tesla
 
-  adapter Tesla.Adapter.Gun, certificates_verification: true, timeout: 5_000
-
   plug Tesla.Middleware.BaseUrl, "https://alphahub.us"
   plug Tesla.Middleware.DecodeJson
   plug Tesla.Middleware.FormUrlencoded, encode: &form_encode/1
 
+  @adapter_opts [adapter: [certificates_verification: true, timeout: 5_000]]
+
   def create_session(params) do
-    handle_response(post("api/v1/session", params))
+    handle_response(post("api/v1/session", params, opts: @adapter_opts))
   end
 
   defp form_encode(%{email: email, password: password}), do: "user[email]=#{email}&user[password]=#{password}"
