@@ -18,4 +18,22 @@ defmodule Heartwood.Bot do
 
   @spec subscribe(pid | module, keyword) :: [:ok | {:error, term}]
   def subscribe(name, options), do: subscribe({name, options})
+
+  @doc """
+  Generic bot initialization function. Subscribes to venue, market, source;
+  initializes Logger
+  """
+  @spec init(keyword) :: {:ok, term}
+  def init(config) do
+    config
+    |> Keyword.take([:market, :venue, :source])
+    |> Keyword.values()
+    |> Enum.each(&subscribe/1)
+
+    with {:ok, name} <- Keyword.fetch(config, :name) do
+      Heartwood.Logger.start(Keyword.merge([log_path: "/tmp/#{name}.log"], config))
+    end
+
+    {:ok, config}
+  end
 end

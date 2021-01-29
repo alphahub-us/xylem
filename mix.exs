@@ -20,6 +20,7 @@ defmodule Heartwood.MixProject do
 
   defp deps do
     [
+      {:logger_file_backend, ">= 0.0.0"},
       {:phoenix_pubsub, "~> 2.0"},
       {:axil, git: "https://git.sr.ht/~dcrck/axil"},
       {:jason, ">= 1.0.0"},

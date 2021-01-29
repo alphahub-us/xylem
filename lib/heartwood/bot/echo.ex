@@ -4,19 +4,10 @@ defmodule Heartwood.Bot.Echo do
 
   alias Heartwood.Bot
 
-  def start_link(config) do
-    GenServer.start_link(__MODULE__, config)
-  end
+  def start_link(config), do: GenServer.start_link(__MODULE__, config)
 
   @impl true
-  def init(config) do
-    config
-    |> Keyword.take([:market, :venue, :source])
-    |> Keyword.values()
-    |> Enum.each(&Bot.subscribe/1)
-
-    {:ok, config}
-  end
+  def init(config), do: Bot.init(config)
 
   @impl true
   def handle_info({:source, signals}, config) do
