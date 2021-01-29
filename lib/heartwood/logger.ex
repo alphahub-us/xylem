@@ -25,7 +25,7 @@ defmodule Heartwood.Logger do
     end
   end
 
-  @spec record_order_event(atom, map, (map -> String.t)) :: :ok
+  @spec record_order_event(atom, map, (Heartwood.Venue.order_event -> String.t)) :: :ok
   def record_order_event(id, event, formatter \\ &to_string/1) do
     Logger.info(formatter.(event), id: id)
   end
