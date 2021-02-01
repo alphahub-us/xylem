@@ -70,7 +70,7 @@ defmodule Heartwood.Source.AlphaHub do
     |> Jason.decode()
     |> case do
       {:ok, [_, _, "algorithms:" <> id, "new_signals", signals]} ->
-        Heartwood.Channel.broadcast(get_topic(id), {:source, format(signals)})
+        Heartwood.Channel.broadcast(get_topic(id), {:source, normalize(signals)})
       {:ok, [_, _, _topic, "phx_reply", %{ "status" => "ok" }]} ->
         :ok
       {:ok, message} ->
@@ -107,5 +107,36 @@ defmodule Heartwood.Source.AlphaHub do
 
   defp get_topic(id), do: "alphahub:#{id}"
   defp json_frame(contents), do: {:text, Jason.encode!(contents)}
-  defp format(signals), do: signals
+
+  defp normalize(signals) do
+    signals
+    |> Enum.map(fn
+      {type, signals} when is_list(signals) ->
+        defaults = [type: String.to_existing_atom(type), weight: default_weight(signals)]
+        Enum.map(signals, &normalize(&1, defaults))
+      _ ->
+        []
+    end)
+    |> List.flatten()
+  end
+
+  defp normalize(signal, defaults) do
+    keys = [:type, :symbol, :price, :side, :weight]
+
+    signal = signal |> Enum.into(%{}, &normalize_pair/1) |> Map.take(keys)
+    defaults = defaults |> Keyword.take(keys) |> Enum.into(%{})
+
+    Map.merge(defaults, signal)
+  end
+
+  defp normalize_pair({k,v}), do: {String.to_existing_atom(k), normalize_value(k,v)}
+
+  defp normalize_value(k, v) when k in ["price", "weight"], do: to_decimal(v)
+  defp normalize_value(k, v) when k in ["type", "side"], do: String.to_existing_atom(v)
+  defp normalize_value(_, v), do: v
+
+  defp default_weight(signals), do: Decimal.div(Decimal.new(1), Decimal.new(length(signals)))
+
+  defp to_decimal(price) when is_float(price), do: Decimal.from_float(price)
+  defp to_decimal(price), do: Decimal.new(price)
 end
