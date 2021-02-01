@@ -34,6 +34,6 @@ defmodule Heartwood.Bot do
       Heartwood.Logger.start(Keyword.merge([log_path: "/tmp/#{name}.log"], config))
     end
 
-    {:ok, config}
+    {:ok, Enum.into(config, %{})}
   end
 end
