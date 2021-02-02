@@ -111,7 +111,7 @@ defmodule Heartwood.Source.AlphaHub do
   defp normalize(signals) do
     signals
     |> Enum.map(fn
-      {type, signals} when is_list(signals) ->
+      {type, signals} when is_list(signals) and length(signals) > 0 ->
         defaults = [type: String.to_existing_atom(type), weight: default_weight(signals)]
         Enum.map(signals, &normalize(&1, defaults))
       _ ->
