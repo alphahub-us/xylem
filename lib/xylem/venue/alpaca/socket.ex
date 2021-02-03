@@ -55,13 +55,17 @@ defmodule Xylem.Venue.Alpaca.Socket do
   defp normalize(:type, %{"event" => "canceled"}), do: :cancel
   defp normalize(:symbol, %{"order" => %{"symbol" => symbol}}), do: symbol
   defp normalize(:side, %{"order" => %{"side" => side}}), do: String.to_existing_atom(side)
-  defp normalize(:qty, %{"position_qty" => qty}), do: String.to_integer(qty)
-  defp normalize(:qty, %{"order" => %{"qty" => qty}}), do: String.to_integer(qty)
+  defp normalize(:qty, %{"event" => "fill", "qty" => qty}), do: parse_qty(qty)
+  defp normalize(:qty, %{"position_qty" => qty}), do: parse_qty(qty)
+  defp normalize(:qty, %{"order" => %{"qty" => qty}}), do: parse_qty(qty)
   defp normalize(:price, %{"price" => price}), do: Decimal.new(price)
   defp normalize(:price, %{"order" => %{"limit_price" => price}}) when not is_nil(price), do: Decimal.new(price)
   defp normalize(:price, %{"order" => %{"filled_avg_price" => price}}) when not is_nil(price), do: Decimal.new(price)
   defp normalize(:price, _), do: nil
   defp normalize(_, _), do: nil
+
+  defp parse_qty("-" <> qty), do: parse_qty(qty)
+  defp parse_qty(qty), do: String.to_integer(qty)
 
   defp host("paper"), do: "paper-api.alpaca.markets"
   defp host("live"), do: "api.alpaca.markets"
