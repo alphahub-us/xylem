@@ -4,8 +4,8 @@ defmodule Xylem.Data.Polygon do
   @behaviour Xylem.Data
 
   @impl Xylem.Data
-  def topic(%{type: type, symbol: symbol}), do: get_topic(type, symbol)
-  def topic(_), do: []
+  def topic(%{type: type, symbol: symbol}), do: {:ok, get_topic(type, symbol)}
+  def topic(_), do: {:ok, []}
 
   def start_link(config) do
     with {:ok, %{api_key: key}} <- Keyword.fetch(config, :credentials) do
