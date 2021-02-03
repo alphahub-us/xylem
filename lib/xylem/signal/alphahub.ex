@@ -6,7 +6,6 @@ defmodule Xylem.Signal.AlphaHub do
 
   alias Xylem.Signal.AlphaHub.Socket
 
-
   @impl Xylem.Signal
   def topic(options) do
     case Keyword.fetch(options, :id) do
