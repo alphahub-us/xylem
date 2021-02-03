@@ -10,7 +10,7 @@ defmodule Xylem.Bot.Production do
   def init(config), do: Bot.init(config)
 
   @impl true
-  def handle_info({:source, signals}, state = %{venue: venue, name: name}) do
+  def handle_info({:signal, signals}, state = %{venue: venue, name: name}) do
     IO.inspect(signals, label: "signals")
     positions = Venue.get_positions(venue)
     signals

@@ -1,4 +1,4 @@
-defmodule Xylem.Source.AlphaHub.Client do
+defmodule Xylem.Signal.AlphaHub.Client do
 
   use Tesla
 

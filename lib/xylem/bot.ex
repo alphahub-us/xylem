@@ -20,13 +20,13 @@ defmodule Xylem.Bot do
   def subscribe(name, options), do: subscribe({name, options})
 
   @doc """
-  Generic bot initialization function. Subscribes to venue, market, source;
+  Generic bot initialization function. Subscribes to venue, market, signal;
   initializes Logger
   """
   @spec init(keyword) :: {:ok, term}
   def init(config) do
     config
-    |> Keyword.take([:market, :venue, :source])
+    |> Keyword.take([:market, :venue, :signal])
     |> Keyword.values()
     |> Enum.each(&subscribe/1)
 

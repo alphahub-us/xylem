@@ -1,20 +1,20 @@
-defmodule Xylem.Source.AlphaHub do
+defmodule Xylem.Signal.AlphaHub do
   @moduledoc """
-  The AlphaHub source
+  The AlphaHub signal
 
   A WebSockets client that listens on the AlphaHub channel for new signals.
 
   ### Configuration
 
-  To use this source, you pass in your credentials and the IDs of the
+  To use this signal, you pass in your credentials and the IDs of the
   algorithms you wish to monitor via your configuration file:
 
   ```
   config :xylem,
-    sources: [
+    signals: [
       # ...
       alphahub: {
-        Xylem.Source.AlphaHub,
+        Xylem.Signal.AlphaHub,
         credentials: %{email: "you@example.com", password: "your password"},
         ids: [1,2,3]
       },
@@ -28,20 +28,20 @@ defmodule Xylem.Source.AlphaHub do
   config :xylem,
     bots: [
       # ...
-      bot_name: {Xylem.Bot.MyBot, source: {:alphahub, id: 1}, ... }
+      bot_name: {Xylem.Bot.MyBot, signal: {:alphahub, id: 1}, ... }
       # ...
     ]
   ```
   """
-  alias Xylem.Source.AlphaHub.Client
+  alias Xylem.Signal.AlphaHub.Client
 
   use Axil
 
   @conn [host: "alphahub.us", path: "/", port: 443]
 
-  @behaviour Xylem.Source
+  @behaviour Xylem.Signal
 
-  @impl Xylem.Source
+  @impl Xylem.Signal
   def topic(id: id), do: get_topic(id)
 
   def start_link(config) do
@@ -70,7 +70,7 @@ defmodule Xylem.Source.AlphaHub do
     |> Jason.decode()
     |> case do
       {:ok, [_, _, "algorithms:" <> id, "new_signals", signals]} ->
-        Xylem.Channel.broadcast(get_topic(id), {:source, normalize(signals)})
+        Xylem.Channel.broadcast(get_topic(id), {:signal, normalize(signals)})
       {:ok, [_, _, _topic, "phx_reply", %{ "status" => "ok" }]} ->
         :ok
       {:ok, message} ->

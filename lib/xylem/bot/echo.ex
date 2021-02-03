@@ -10,7 +10,7 @@ defmodule Xylem.Bot.Echo do
   def init(config), do: Bot.init(config)
 
   @impl true
-  def handle_info({:source, signals}, config) do
+  def handle_info({:signal, signals}, config) do
     IO.inspect(signals, label: "signals")
     {:noreply, config}
   end
