@@ -7,8 +7,9 @@ defmodule Xylem.Loader do
   end
 
   def run(config) do
-    [:venues, :signals, :markets, :bots]
+    [:venues, :signals, :data, :bots]
     |> Enum.map(&Keyword.get(config, &1, []))
+    |> Enum.map(&Map.to_list/1)
     |> List.flatten()
     |> Enum.filter(&needs_startup?/1)
     |> Enum.each(&Xylem.Supervisor.start_child/1)

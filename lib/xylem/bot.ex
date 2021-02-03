@@ -1,17 +1,20 @@
 defmodule Xylem.Bot do
 
+  require Logger
+
   @spec subscribe(module | {pid | module, keyword}) :: [:ok | {:error, term}]
   def subscribe({name, options}) do
     options = Keyword.put(options, :name, name)
 
-    name
-    |> Xylem.Registry.lookup()
-    |> case do
-      {_pid, module} -> apply(module, :topic, [options])
-      _ -> apply(name, :topic, [options])
+    with [{_pid, module}] <- Registry.lookup(Xylem.Registry, name),
+         {:ok, channels} <- apply(module, :topic, [options]) do
+      channels
+      |> List.wrap()
+      |> IO.inspect(label: "channel")
+      |> Enum.map(&Xylem.Channel.subscribe/1)
+    else
+      _other ->  Logger.warn "unable to subscribe to #{inspect name}"
     end
-    |> List.wrap()
-    |> Enum.map(&Xylem.Channel.subscribe/1)
   end
 
   def subscribe(module), do: subscribe({module, []})
@@ -20,13 +23,13 @@ defmodule Xylem.Bot do
   def subscribe(name, options), do: subscribe({name, options})
 
   @doc """
-  Generic bot initialization function. Subscribes to venue, market, signal;
+  Generic bot initialization function. Subscribes to venue, market, source;
   initializes Logger
   """
   @spec init(keyword) :: {:ok, term}
   def init(config) do
     config
-    |> Keyword.take([:market, :venue, :signal])
+    |> Keyword.take([:venue, :signal, :data])
     |> Keyword.values()
     |> Enum.each(&subscribe/1)
 
