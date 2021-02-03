@@ -1,59 +1,24 @@
 defmodule Xylem.Signal.AlphaHub.Socket do
-  @moduledoc """
-  A WebSockets client that listens on the AlphaHub channel for new signals.
-
-  ### Configuration
-
-  To use this signal, you pass in your credentials and the IDs of the
-  algorithms you wish to monitor via your configuration file:
-
-  ```
-  config :xylem,
-    signals: [
-      # ...
-      alphahub: {
-        Xylem.Signal.AlphaHub,
-        credentials: %{email: "you@example.com", password: "your password"},
-        ids: [1,2,3]
-      },
-      #...
-    ],
-  ```
-
-  Then, configure your bot as follows:
-
-  ```
-  config :xylem,
-    bots: [
-      # ...
-      bot_name: {Xylem.Bot.MyBot, signal: {:alphahub, id: 1}, ... }
-      # ...
-    ]
-  ```
-  """
-  alias Xylem.Signal.AlphaHub.Client
 
   use Axil
 
-  @conn [host: "alphahub.us", path: "/", port: 443]
-
-  @behaviour Xylem.Signal
-
-  @impl Xylem.Signal
-  def topic(id: id), do: get_topic(id)
+  alias Xylem.{Channel, Signal.AlphaHub}
 
   def start_link(config) do
     with {:ok, credentials} <- Keyword.fetch(config, :credentials),
-         {:ok, _ids} <- Keyword.fetch(config, :ids),
-         {:ok, tokens} <- Client.create_session(credentials) do
+         {:ok, tokens} <- AlphaHub.create_session(AlphaHub.client(config), credentials) do
       path = "/socket/websocket?api_token=#{tokens["token"]}&vsn=2.0.0"
       state = Enum.into(Keyword.take(config, [:ids, :credentials]), %{})
-      Axil.start_link(Keyword.merge(@conn, path: path), __MODULE__, state)
+      conn = conn_info(Keyword.get(config, :env, :prod))
+      Axil.start_link(Keyword.merge(conn, path: path), __MODULE__, state)
     else
       :error -> {:error, :bad_args}
       error = {:error, _} -> error
     end
   end
+
+  defp conn_info(:prod), do: [host: "alphahub.us", port: 443]
+  defp conn_info(:dev), do: [host: "localhost", port: 8080]
 
   # Axil overrides
 
@@ -65,16 +30,13 @@ defmodule Xylem.Signal.AlphaHub.Socket do
 
   def handle_receive({:text, content}, state) do
     content
-    |> Jason.decode()
+    |> Jason.decode!()
     |> case do
-      {:ok, [_, _, "algorithms:" <> id, "new_signals", signals]} ->
-        Xylem.Channel.broadcast(get_topic(id), {:signal, normalize(signals)})
-      {:ok, [_, _, _topic, "phx_reply", %{ "status" => "ok" }]} ->
-        :ok
-      {:ok, message} ->
-        IO.inspect(message)
-      {:error, _} ->
-        IO.inspect(content)
+      [_, _, "algorithms:" <> id, "new_signals", signals] ->
+        {:ok, topic} = AlphaHub.topic(id: id)
+        Channel.broadcast(topic, {:source, normalize(signals)})
+      [_, _, _topic, "phx_reply", %{ "status" => "ok" }] -> :ok
+      message -> IO.inspect(message)
     end
     {:nosend, state}
   end
@@ -103,7 +65,6 @@ defmodule Xylem.Signal.AlphaHub.Socket do
     {:send, json_frame([nil, nil, "phoenix", "heartbeat", %{}]), state}
   end
 
-  defp get_topic(id), do: "alphahub:#{id}"
   defp json_frame(contents), do: {:text, Jason.encode!(contents)}
 
   defp normalize(signals) do
