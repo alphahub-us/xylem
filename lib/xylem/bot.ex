@@ -6,7 +6,7 @@ defmodule Xylem.Bot do
   def subscribe({name, options}) do
     options = Keyword.put(options, :name, name)
 
-    with [{_pid, module}] <- Registry.lookup(Xylem.Registry, name),
+    with {_pid, module} <- Xylem.Registry.lookup(name),
          {:ok, channels} <- apply(module, :topic, [options]) do
       channels
       |> List.wrap()
