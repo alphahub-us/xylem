@@ -20,7 +20,7 @@ defmodule Xylem.Venue do
   @doc """
   Retrieves the topic or topics for a venue, provided the given options.
   """
-  @callback topic(options :: keyword) :: String.t | [String.t]
+  @callback topic(options :: keyword) :: {:ok, String.t | [String.t]}, {:error, :invalid_topic}
 
   @doc """
   Submits an order to the venue
@@ -52,29 +52,23 @@ defmodule Xylem.Venue do
   end
 
   def submit_order(venue_name, order, options \\ []) do
-    venue_name
-    |> Xylem.Registry.lookup()
-    |> case do
+    case Xylem.Registry.lookup(venue_name) do
       {pid, module} -> apply(module, :submit_order, [pid, order, options])
-      _ -> apply(venue_name, :submit_order, [order, options])
+      _ -> {:error, :venue_not_found}
     end
   end
 
   def cancel_order(venue_name, order, options \\ []) do
-    venue_name
-    |> Xylem.Registry.lookup()
-    |> case do
+    case Xylem.Registry.lookup(venue_name) do
       {pid, module} -> apply(module, :cancel_order, [pid, order, options])
-      _ -> apply(venue_name, :cancel_order, [order, options])
+      _ -> {:error, :venue_not_found}
     end
   end
 
   def get_positions(venue_name) do
-    venue_name
-    |> Xylem.Registry.lookup()
-    |> case do
+    case Xylem.Registry.lookup(venue_name) do
       {pid, module} -> apply(module, :get_positions, [pid])
-      _ -> apply(venue_name, :get_positions, [])
+      _ -> {:error, :venue_not_found}
     end
   end
 end
