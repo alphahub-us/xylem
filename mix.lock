@@ -1,5 +1,5 @@
 %{
-  "alpaca_elixir": {:git, "https://git.sr.ht/~dcrck/alpaca-elixir", "abd28fe73f1c9d2ed08b166d46ff4749be63d0b4", []},
+  "alpaca_elixir": {:git, "https://git.sr.ht/~dcrck/alpaca-elixir", "a4816edc622b1ced18ad52427c5244ae2ac146ae", []},
   "axil": {:git, "https://git.sr.ht/~dcrck/axil", "073bb4d967211f2555f8d3f990df064863e22e38", []},
   "castore": {:hex, :castore, "0.1.9", "eb08a94c12ebff92a92d844c6ccd90728dc7662aab9bdc8b3b785ba653c499d5", [:mix], [], "hexpm", "99c3a38ad9c0bab03fee1418c98390da1a31f3b85e317db5840d51a1443d26c8"},
   "cowlib": {:hex, :cowlib, "2.8.0", "fd0ff1787db84ac415b8211573e9a30a3ebe71b5cbff7f720089972b2319c8a4", [:rebar3], [], "hexpm", "79f954a7021b302186a950a32869dbc185523d99d3e44ce430cd1f3289f41ed4"},

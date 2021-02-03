@@ -1,0 +1,67 @@
+defmodule Xylem.Venue.Alpaca.Socket do
+  use Axil
+
+  @conn [host: "api.alpaca.markets", path: "/stream", port: 443]
+
+  def start_link(config) do
+    with {:ok, env} <- Keyword.fetch(config, :environment),
+         {:ok, %{id: _id, secret: _secret}} <- Keyword.fetch(config, :credentials) do
+      state = Enum.into(Keyword.take(config, [:name, :credentials]), %{})
+      Axil.start_link(Keyword.merge(@conn, host: host(env)), __MODULE__, state)
+    else
+      :error -> {:error, :bad_config}
+    end
+  end
+
+  def handle_upgrade(_conn, %{credentials: %{id: id, secret: secret}} = state) do
+    {:send, json_frame(%{action: "authenticate", data: %{key_id: id, secret_key: secret}}), Map.delete(state, :credentials)}
+  end
+
+  def handle_receive({type, content}, state) when type in [:text, :binary] do
+    content
+    |> Jason.decode!()
+    |> case do
+      %{"stream" => "authorization", "data" => %{"status" => "authorized"}} ->
+        {:send, json_frame(%{action: "listen", data: %{streams: ["trade_updates"]}}), state}
+      %{"stream" => "authorization", "data" => %{"status" => "unauthorized"}} ->
+        {:close, state}
+      %{"stream" => "listening"} ->
+        IO.puts "listening for Alpaca account updates"
+        {:nosend, state}
+      %{"stream" => "trade_updates", "data" => data} ->
+        {:ok, topic} = Xylem.Venue.Alpaca.topic(Map.to_list(state))
+        Xylem.Channel.broadcast(topic, {:venue, normalize(data)})
+        {:nosend, state}
+      other ->
+        IO.inspect(other, label: "inbound message")
+        {:nosend, state}
+    end
+  end
+
+  def handle_receive(:close, state), do: {:close, state}
+
+  defp normalize(update) do
+    [:id, :timestamp, :type, :side, :symbol, :qty, :price]
+    |> Enum.reduce(%{}, &Map.put(&2, &1, normalize(&1, update)))
+  end
+
+  defp normalize(:id, %{"order" => %{"client_order_id" => id}}), do: id
+  defp normalize(:timestamp, %{"timestamp" => timestamp}), do: timestamp
+  defp normalize(:timestamp, %{"order" => %{"updated_at" => timestamp}}), do: timestamp
+  defp normalize(:type, %{"event" => "partial_fill"}), do: :partial
+  defp normalize(:type, %{"event" => "fill"}), do: :fill
+  defp normalize(:type, %{"event" => "new"}), do: :new
+  defp normalize(:type, %{"event" => "canceled"}), do: :cancel
+  defp normalize(:symbol, %{"order" => %{"symbol" => symbol}}), do: symbol
+  defp normalize(:side, %{"order" => %{"side" => side}}), do: String.to_existing_atom(side)
+  defp normalize(:qty, %{"position_qty" => qty}), do: String.to_integer(qty)
+  defp normalize(:qty, %{"order" => %{"qty" => qty}}), do: String.to_integer(qty)
+  defp normalize(:price, %{"price" => price}), do: Decimal.new(price)
+  defp normalize(:price, %{"order" => %{"limit_price" => price}}), do: Decimal.new(price)
+  defp normalize(:price, %{"order" => %{"filled_avg_price" => price}}), do: Decimal.new(price)
+  defp normalize(_, _), do: nil
+
+  defp host("paper"), do: "paper-api.alpaca.markets"
+  defp host("live"), do: "api.alpaca.markets"
+  defp json_frame(contents), do: {:text, Jason.encode!(contents)}
+end
