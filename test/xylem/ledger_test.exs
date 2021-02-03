@@ -32,7 +32,7 @@ defmodule Xylem.LedgerTest do
 
       Enum.each(updates, &Ledger.process_event/1)
 
-      {:ok, {_, positions}} = Ledger.last_position(:a, "A")
+      {:ok, {_, positions}} = Ledger.last_position("a", "A")
       assert {Decimal.new("1.9"), 0} == Ledger.accumulate(positions)
     end
 
@@ -49,7 +49,7 @@ defmodule Xylem.LedgerTest do
 
       Enum.each(updates, &Ledger.process_event/1)
 
-      {:ok, {_, positions}} = Ledger.last_position(:a, "A")
+      {:ok, {_, positions}} = Ledger.last_position("a", "A")
       assert {Decimal.new("1.6"), 0} == Ledger.accumulate(positions)
     end
 
@@ -73,7 +73,7 @@ defmodule Xylem.LedgerTest do
 
       Enum.each(updates, &Ledger.process_event/1)
 
-      {:ok, {_, positions}} = Ledger.last_position(:a, "A")
+      {:ok, {_, positions}} = Ledger.last_position("a", "A")
       assert {Decimal.new("1.6"), 0} == Ledger.accumulate(positions)
     end
 
@@ -97,7 +97,7 @@ defmodule Xylem.LedgerTest do
 
       Enum.each(updates, &Ledger.process_event/1)
 
-      {:ok, {_, positions}} = Ledger.last_position(:a, "A")
+      {:ok, {_, positions}} = Ledger.last_position("a", "A")
       assert {Decimal.new("2.0"), 0} == Ledger.accumulate(positions)
     end
   end
@@ -116,7 +116,7 @@ defmodule Xylem.LedgerTest do
 
       Enum.each(updates, &Ledger.process_event/1)
 
-      assert [order] = Ledger.prepare_orders(signals, :a, positions)
+      assert [order] = Ledger.prepare_orders(signals, "a", positions)
                        |> Enum.map(&Map.take(&1, [:price, :symbol, :side, :qty]))
       assert order == %{price: Decimal.new("1.5"), symbol: "A", side: :sell, qty: 1}
     end
@@ -134,7 +134,7 @@ defmodule Xylem.LedgerTest do
 
       Enum.each(updates, &Ledger.process_event/1)
 
-      assert [order] = Ledger.prepare_orders(signals, :a, positions)
+      assert [order] = Ledger.prepare_orders(signals, "a", positions)
                        |> Enum.map(&Map.take(&1, [:price, :symbol, :side, :qty]))
       assert order == %{price: Decimal.new("1.5"), symbol: "A", side: :sell, qty: 1}
     end
@@ -152,7 +152,7 @@ defmodule Xylem.LedgerTest do
 
       Enum.each(updates, &Ledger.process_event/1)
 
-      assert [order, order] = Ledger.prepare_orders(signals, :a, positions)
+      assert [order, order] = Ledger.prepare_orders(signals, "a", positions)
                               |> Enum.map(&Map.take(&1, [:price, :symbol, :side, :qty]))
       assert order == %{price: Decimal.new("1.5"), symbol: "A", side: :sell, qty: 1}
     end
@@ -170,7 +170,7 @@ defmodule Xylem.LedgerTest do
 
       Enum.each(updates, &Ledger.process_event/1)
 
-      assert [order] = Ledger.prepare_orders(signals, :a, positions)
+      assert [order] = Ledger.prepare_orders(signals, "a", positions)
                        |> Enum.map(&Map.take(&1, [:price, :symbol, :side, :qty]))
       assert order == %{price: Decimal.new("1.5"), symbol: "A", side: :sell, qty: 1}
     end
@@ -188,7 +188,7 @@ defmodule Xylem.LedgerTest do
 
       Enum.each(updates, &Ledger.process_event/1)
 
-      assert [order] = Ledger.prepare_orders(signals, :a, positions)
+      assert [order] = Ledger.prepare_orders(signals, "a", positions)
                        |> Enum.map(&Map.take(&1, [:price, :symbol, :side, :qty]))
       assert order == %{price: Decimal.new("1.5"), symbol: "A", side: :buy, qty: 1}
     end
@@ -206,7 +206,7 @@ defmodule Xylem.LedgerTest do
 
       Enum.each(updates, &Ledger.process_event/1)
 
-      assert [order] = Ledger.prepare_orders(signals, :a, positions)
+      assert [order] = Ledger.prepare_orders(signals, "a", positions)
                        |> Enum.map(&Map.take(&1, [:price, :symbol, :side, :qty]))
       assert order == %{price: Decimal.new("1.5"), symbol: "A", side: :buy, qty: 1}
     end
@@ -224,7 +224,7 @@ defmodule Xylem.LedgerTest do
 
       Enum.each(updates, &Ledger.process_event/1)
 
-      assert [order, order] = Ledger.prepare_orders(signals, :a, positions)
+      assert [order, order] = Ledger.prepare_orders(signals, "a", positions)
                               |> Enum.map(&Map.take(&1, [:price, :symbol, :side, :qty]))
       assert order == %{price: Decimal.new("1.5"), symbol: "A", side: :buy, qty: 1}
     end
@@ -242,18 +242,18 @@ defmodule Xylem.LedgerTest do
 
       Enum.each(updates, &Ledger.process_event/1)
 
-      assert [order] = Ledger.prepare_orders(signals, :a, positions)
+      assert [order] = Ledger.prepare_orders(signals, "a", positions)
                        |> Enum.map(&Map.take(&1, [:price, :symbol, :side, :qty]))
       assert order == %{price: Decimal.new("1.5"), symbol: "A", side: :buy, qty: 1}
     end
 
     test "prepares a new order from an open signal" do
-      Ledger.set_funds(:a, 1.5)
+      Ledger.set_funds("a", 1.5)
       signals = [
         %{type: :open, symbol: "A", price: Decimal.new("1.5"), side: :buy, weight: Decimal.new("1.0")}
       ]
 
-      assert [order] = Ledger.prepare_orders(signals, :a, [])
+      assert [order] = Ledger.prepare_orders(signals, "a", [])
                        |> Enum.map(&Map.take(&1, [:price, :symbol, :side, :qty]))
       assert order == %{price: Decimal.new("1.5"), symbol: "A", side: :buy, qty: 1}
     end
