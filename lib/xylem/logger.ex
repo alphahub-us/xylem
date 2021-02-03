@@ -1,14 +1,14 @@
-defmodule Heartwood.Logger do
+defmodule Xylem.Logger do
   @moduledoc """
   A module that handles logging for bots.
 
   To start logging:
   ```
-  iex> Heartwood.Logger.start(name: :my_bot, path: "/tmp/my_bot")
+  iex> Xylem.Logger.start(name: :my_bot, path: "/tmp/my_bot")
   :ok
   iex> order_event = %{timestamp: ~N[2021-01-01 12:00:00], symbol: "AAPL", shares: 10, price: 123.456}
   %{timestamp: ~N[2021-01-01 12:00:00], symbol: "AAPL", shares: 10, price: 123.456}
-  iex> Heartwood.Logger.record_order_event(:my_bot, order_event, format: :csv)
+  iex> Xylem.Logger.record_order_event(:my_bot, order_event, format: :csv)
   :ok # should log the order to the desired file
   ```
   """
@@ -25,7 +25,7 @@ defmodule Heartwood.Logger do
     end
   end
 
-  @spec record_order_event(atom, map, (Heartwood.Venue.order_event -> String.t)) :: :ok
+  @spec record_order_event(atom, map, (Xylem.Venue.order_event -> String.t)) :: :ok
   def record_order_event(id, event, formatter \\ &to_string/1) do
     Logger.info(formatter.(event), id: id)
   end

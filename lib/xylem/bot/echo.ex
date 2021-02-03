@@ -1,8 +1,8 @@
-defmodule Heartwood.Bot.Echo do
+defmodule Xylem.Bot.Echo do
 
   use GenServer
 
-  alias Heartwood.Bot
+  alias Xylem.Bot
 
   def start_link(config), do: GenServer.start_link(__MODULE__, config)
 

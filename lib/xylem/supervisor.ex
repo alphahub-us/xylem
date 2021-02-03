@@ -1,4 +1,4 @@
-defmodule Heartwood.Supervisor do
+defmodule Xylem.Supervisor do
 
   @me __MODULE__
 

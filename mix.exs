@@ -1,9 +1,9 @@
-defmodule Heartwood.MixProject do
+defmodule Xylem.MixProject do
   use Mix.Project
 
   def project do
     [
-      app: :heartwood,
+      app: :xylem,
       version: "0.1.0",
       elixir: "~> 1.11",
       start_permanent: Mix.env() == :prod,
@@ -14,7 +14,7 @@ defmodule Heartwood.MixProject do
   def application do
     [
       extra_applications: [:logger],
-      mod: {Heartwood.Application, [env: Mix.env()]}
+      mod: {Xylem.Application, [env: Mix.env()]}
     ]
   end
 

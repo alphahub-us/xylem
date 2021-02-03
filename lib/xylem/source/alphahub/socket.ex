@@ -1,7 +1,5 @@
-defmodule Heartwood.Source.AlphaHub do
+defmodule Xylem.Source.AlphaHub.Socket do
   @moduledoc """
-  The AlphaHub source
-
   A WebSockets client that listens on the AlphaHub channel for new signals.
 
   ### Configuration
@@ -10,11 +8,11 @@ defmodule Heartwood.Source.AlphaHub do
   algorithms you wish to monitor via your configuration file:
 
   ```
-  config :heartwood,
+  config :xylem,
     sources: [
       # ...
       alphahub: {
-        Heartwood.Source.AlphaHub,
+        Xylem.Source.AlphaHub,
         credentials: %{email: "you@example.com", password: "your password"},
         ids: [1,2,3]
       },
@@ -25,23 +23,23 @@ defmodule Heartwood.Source.AlphaHub do
   Then, configure your bot as follows:
 
   ```
-  config :heartwood,
+  config :xylem,
     bots: [
       # ...
-      bot_name: {Heartwood.Bot.MyBot, source: {:alphahub, id: 1}, ... }
+      bot_name: {Xylem.Bot.MyBot, source: {:alphahub, id: 1}, ... }
       # ...
     ]
   ```
   """
-  alias Heartwood.Source.AlphaHub.Client
+  alias Xylem.Source.AlphaHub.Client
 
   use Axil
 
   @conn [host: "alphahub.us", path: "/", port: 443]
 
-  @behaviour Heartwood.Source
+  @behaviour Xylem.Source
 
-  @impl Heartwood.Source
+  @impl Xylem.Source
   def topic(id: id), do: get_topic(id)
 
   def start_link(config) do
@@ -70,7 +68,7 @@ defmodule Heartwood.Source.AlphaHub do
     |> Jason.decode()
     |> case do
       {:ok, [_, _, "algorithms:" <> id, "new_signals", signals]} ->
-        Heartwood.Channel.broadcast(get_topic(id), {:source, normalize(signals)})
+        Xylem.Channel.broadcast(get_topic(id), {:source, normalize(signals)})
       {:ok, [_, _, _topic, "phx_reply", %{ "status" => "ok" }]} ->
         :ok
       {:ok, message} ->

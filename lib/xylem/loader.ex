@@ -1,4 +1,4 @@
-defmodule Heartwood.Loader do
+defmodule Xylem.Loader do
 
   use Task
 
@@ -11,7 +11,7 @@ defmodule Heartwood.Loader do
     |> Enum.map(&Keyword.get(config, &1, []))
     |> List.flatten()
     |> Enum.filter(&needs_startup?/1)
-    |> Enum.each(&Heartwood.Supervisor.start_child/1)
+    |> Enum.each(&Xylem.Supervisor.start_child/1)
   end
 
   defp needs_startup?({_name, {module, _opts}}), do: needs_startup?(module)

@@ -1,7 +1,7 @@
-defmodule Heartwood.LedgerTest do
+defmodule Xylem.LedgerTest do
   use ExUnit.Case, async: true
 
-  alias Heartwood.Ledger
+  alias Xylem.Ledger
 
   setup do
     tmp_dir = :os.cmd('mktemp -d') |> List.to_string() |> String.trim() |> String.to_charlist()
@@ -20,7 +20,7 @@ defmodule Heartwood.LedgerTest do
 
   describe "process_event/1" do
     test "handles long position" do
-      base_update = %{type: :new, side: :buy, qty: 0, price: 0, symbol: "A", id: "heartwood-a"}
+      base_update = %{type: :new, side: :buy, qty: 0, price: 0, symbol: "A", id: "xylem-a"}
       updates = [
         base_update,
         %{base_update | type: :partial, qty: 1, price: 1},
@@ -37,7 +37,7 @@ defmodule Heartwood.LedgerTest do
     end
 
     test "handles short position" do
-      base_update = %{type: :new, side: :buy, qty: 0, price: 0, symbol: "A", id: "heartwood-a"}
+      base_update = %{type: :new, side: :buy, qty: 0, price: 0, symbol: "A", id: "xylem-a"}
       updates = [
         %{base_update | side: :sell},
         %{base_update | side: :sell, type: :partial, qty: 1, price: 2},
@@ -54,7 +54,7 @@ defmodule Heartwood.LedgerTest do
     end
 
     test "isn't caught up by random other events" do
-      base_update = %{type: :new, side: :buy, qty: 0, price: 0, symbol: "A", id: "heartwood-a"}
+      base_update = %{type: :new, side: :buy, qty: 0, price: 0, symbol: "A", id: "xylem-a"}
       external_update = %{base_update | id: "other-id"}
       updates = [
         %{base_update | side: :sell},
@@ -78,8 +78,8 @@ defmodule Heartwood.LedgerTest do
     end
 
     test "handles multiple positions for the same symbol" do
-      base_update = %{type: :new, side: :buy, qty: 0, price: 0, symbol: "A", id: "heartwood-a-1"}
-      second_update = %{base_update | id: "heartwood-a-2"}
+      base_update = %{type: :new, side: :buy, qty: 0, price: 0, symbol: "A", id: "xylem-a-1"}
+      second_update = %{base_update | id: "xylem-a-2"}
       updates = [
         %{base_update | side: :sell},
         %{base_update | side: :sell, type: :partial, qty: 1, price: 2},
@@ -104,7 +104,7 @@ defmodule Heartwood.LedgerTest do
 
   describe "prepare_orders" do
     test "prepares a new order from a long close signal, expected existing shares" do
-      base_update = %{type: :new, side: :buy, qty: 0, price: 0, symbol: "A", id: "heartwood-a"}
+      base_update = %{type: :new, side: :buy, qty: 0, price: 0, symbol: "A", id: "xylem-a"}
       signals = [
         %{type: :close, symbol: "A", price: Decimal.new("1.5"), side: :sell, weight: Decimal.new("1.0")}
       ]
@@ -122,7 +122,7 @@ defmodule Heartwood.LedgerTest do
     end
 
     test "prepares new orders for a long close signal, fewer shares than expected" do
-      base_update = %{type: :new, side: :buy, qty: 0, price: 0, symbol: "A", id: "heartwood-a"}
+      base_update = %{type: :new, side: :buy, qty: 0, price: 0, symbol: "A", id: "xylem-a"}
       signals = [
         %{type: :close, symbol: "A", price: Decimal.new("1.5"), side: :sell, weight: Decimal.new("1.0")}
       ]
@@ -140,7 +140,7 @@ defmodule Heartwood.LedgerTest do
     end
 
     test "prepares new orders for a long close signal, fewer shares than expected with need to break up order" do
-      base_update = %{type: :new, side: :buy, qty: 0, price: 0, symbol: "A", id: "heartwood-a"}
+      base_update = %{type: :new, side: :buy, qty: 0, price: 0, symbol: "A", id: "xylem-a"}
       signals = [
         %{type: :close, symbol: "A", price: Decimal.new("1.5"), side: :sell, weight: Decimal.new("1.0")}
       ]
@@ -158,7 +158,7 @@ defmodule Heartwood.LedgerTest do
     end
 
     test "prepares new orders for a long close signal, more shares than expected" do
-      base_update = %{type: :new, side: :buy, qty: 0, price: 0, symbol: "A", id: "heartwood-a"}
+      base_update = %{type: :new, side: :buy, qty: 0, price: 0, symbol: "A", id: "xylem-a"}
       signals = [
         %{type: :close, symbol: "A", price: Decimal.new("1.5"), side: :sell, weight: Decimal.new("1.0")}
       ]
@@ -176,7 +176,7 @@ defmodule Heartwood.LedgerTest do
     end
 
     test "prepares new orders for a short close signal, same shares as expected" do
-      base_update = %{type: :new, side: :sell, qty: 0, price: 0, symbol: "A", id: "heartwood-a"}
+      base_update = %{type: :new, side: :sell, qty: 0, price: 0, symbol: "A", id: "xylem-a"}
       signals = [
         %{type: :close, symbol: "A", price: Decimal.new("1.5"), side: :buy, weight: Decimal.new("1.0")}
       ]
@@ -194,7 +194,7 @@ defmodule Heartwood.LedgerTest do
     end
 
     test "prepares new orders for a short close signal, fewer shares than expected" do
-      base_update = %{type: :new, side: :sell, qty: 0, price: 0, symbol: "A", id: "heartwood-a"}
+      base_update = %{type: :new, side: :sell, qty: 0, price: 0, symbol: "A", id: "xylem-a"}
       signals = [
         %{type: :close, symbol: "A", price: Decimal.new("1.5"), side: :buy, weight: Decimal.new("1.0")}
       ]
@@ -212,7 +212,7 @@ defmodule Heartwood.LedgerTest do
     end
 
     test "prepares new orders for a short close signal, fewer shares than expected with need to break up order " do
-      base_update = %{type: :new, side: :sell, qty: 0, price: 0, symbol: "A", id: "heartwood-a"}
+      base_update = %{type: :new, side: :sell, qty: 0, price: 0, symbol: "A", id: "xylem-a"}
       signals = [
         %{type: :close, symbol: "A", price: Decimal.new("1.5"), side: :buy, weight: Decimal.new("1.0")}
       ]
@@ -230,7 +230,7 @@ defmodule Heartwood.LedgerTest do
     end
 
     test "prepares new orders for a short close signal, more shares than expected" do
-      base_update = %{type: :new, side: :sell, qty: 0, price: 0, symbol: "A", id: "heartwood-a"}
+      base_update = %{type: :new, side: :sell, qty: 0, price: 0, symbol: "A", id: "xylem-a"}
       signals = [
         %{type: :close, symbol: "A", price: Decimal.new("1.5"), side: :buy, weight: Decimal.new("1.0")}
       ]

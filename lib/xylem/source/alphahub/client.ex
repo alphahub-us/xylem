@@ -1,4 +1,4 @@
-defmodule Heartwood.Source.AlphaHub.Client do
+defmodule Xylem.Source.AlphaHub.Client do
 
   use Tesla
 

@@ -1,6 +1,6 @@
-defmodule Heartwood.Source do
+defmodule Xylem.Source do
   @moduledoc """
-  Behaviour for Heartwood sources. Heartwood expects all sources to broadcast
+  Behaviour for Xylem sources. Xylem expects all sources to broadcast
   new signals on a well-known channel.
   """
 

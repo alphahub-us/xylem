@@ -1,4 +1,4 @@
-defmodule Heartwood.Ledger do
+defmodule Xylem.Ledger do
   @db __MODULE__
 
   import NaiveDateTime, only: [diff: 3, utc_now: 0]
@@ -8,7 +8,7 @@ defmodule Heartwood.Ledger do
   end
 
   def start_link(options) do
-    [data_dir: "/tmp/heartwood", name: @db]
+    [data_dir: "/tmp/xylem", name: @db]
     |> Keyword.merge(options)
     |> CubDB.start_link()
   end
@@ -16,7 +16,7 @@ defmodule Heartwood.Ledger do
   @doc """
   Processes inbound order events
   """
-  @spec process_event(Heartwood.Venue.order_event) :: :ok
+  @spec process_event(Xylem.Venue.order_event) :: :ok
   def process_event(event) do
     with {:ok, bot} <- extract_bot_from_event(event),
          {:ok, type} <- Map.fetch(event, :type),
@@ -124,7 +124,7 @@ defmodule Heartwood.Ledger do
     [_, group | _] = String.split(UUID.uuid4(), "-")
     Enum.map(orders, fn order ->
       id = hd Enum.reverse(String.split(UUID.uuid4(), "-"))
-      Map.put(order, :id, Enum.join(["heartwood", bot, group, id], "-"))
+      Map.put(order, :id, Enum.join(["xylem", bot, group, id], "-"))
     end)
   end
 
@@ -163,7 +163,7 @@ defmodule Heartwood.Ledger do
 
   defp maybe_breakup(signal), do: signal
 
-  defp extract_bot_from_event(%{id: "heartwood-" <> rest}) do
+  defp extract_bot_from_event(%{id: "xylem-" <> rest}) do
     {:ok, rest |> String.split("-") |> hd() |> String.to_atom()}
   end
   defp extract_bot_from_event(_), do: {:error, :no_bot}

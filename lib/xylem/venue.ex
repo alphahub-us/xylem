@@ -1,6 +1,6 @@
-defmodule Heartwood.Venue do
+defmodule Xylem.Venue do
   @moduledoc """
-  Behaviour for Heartwood venues. Heartwood expects all venues to broadcast
+  Behaviour for Xylem venues. Xylem expects all venues to broadcast
   order and account updates updates on a well-known channel.
   """
 
@@ -53,7 +53,7 @@ defmodule Heartwood.Venue do
 
   def submit_order(venue_name, order, options \\ []) do
     venue_name
-    |> Heartwood.Registry.lookup()
+    |> Xylem.Registry.lookup()
     |> case do
       {pid, module} -> apply(module, :submit_order, [pid, order, options])
       _ -> apply(venue_name, :submit_order, [order, options])
@@ -62,7 +62,7 @@ defmodule Heartwood.Venue do
 
   def cancel_order(venue_name, order, options \\ []) do
     venue_name
-    |> Heartwood.Registry.lookup()
+    |> Xylem.Registry.lookup()
     |> case do
       {pid, module} -> apply(module, :cancel_order, [pid, order, options])
       _ -> apply(venue_name, :cancel_order, [order, options])
@@ -71,7 +71,7 @@ defmodule Heartwood.Venue do
 
   def get_positions(venue_name) do
     venue_name
-    |> Heartwood.Registry.lookup()
+    |> Xylem.Registry.lookup()
     |> case do
       {pid, module} -> apply(module, :get_positions, [pid])
       _ -> apply(venue_name, :get_positions, [])

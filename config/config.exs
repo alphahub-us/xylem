@@ -2,10 +2,10 @@ import Config
 
 config :tesla, adapter: Tesla.Adapter.Gun
 
-config :heartwood,
+config :xylem,
   bots: [
-    sandbox: {Heartwood.Bot.Echo, venue: Heartwood.Venue.IEx, source: Heartwood.Source.IEx, market: Heartwood.Market.IEx}
+    sandbox: {Xylem.Bot.Echo, venue: Xylem.Venue.IEx, source: Xylem.Source.IEx, market: Xylem.Market.IEx}
   ],
-  ledger: [data_dir: "/Users/derek/work/quantonomy/heartwood"]
+  ledger: [data_dir: "/Users/derek/work/quantonomy/xylem"]
 
 import_config "#{Mix.env()}.exs"

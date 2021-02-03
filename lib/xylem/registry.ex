@@ -1,6 +1,6 @@
-defmodule Heartwood.Registry do
+defmodule Xylem.Registry do
   @moduledoc """
-  Registry for Heartwood processes. It's a simple wrapper around Registry.
+  Registry for Xylem processes. It's a simple wrapper around Registry.
   """
 
   @me __MODULE__

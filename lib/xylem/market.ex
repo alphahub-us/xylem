@@ -1,6 +1,6 @@
-defmodule Heartwood.Market do
+defmodule Xylem.Market do
   @moduledoc """
-  Behaviour for Heartwood markets. Heartwood expects all markets to broadcast
+  Behaviour for Xylem markets. Xylem expects all markets to broadcast
   asset updates on well-known channels.
   """
 

@@ -1,21 +1,10 @@
-# Heartwood
+# Xylem
 
-**TODO: Add description**
+**xylem** [ zi-lem ] *noun*
+1. A vascular tissue in land plants primarily responsible for the distribution
+   of water and minerals taken up by the roots; also the primary component of
+   wood.
 
-## Installation
-
-If [available in Hex](https://hex.pm/docs/publish), the package can be installed
-by adding `heartwood` to your list of dependencies in `mix.exs`:
-
-```elixir
-def deps do
-  [
-    {:heartwood, "~> 0.1.0"}
-  ]
-end
-```
-
-Documentation can be generated with [ExDoc](https://github.com/elixir-lang/ex_doc)
-and published on [HexDocs](https://hexdocs.pm). Once published, the docs can
-be found at [https://hexdocs.pm/heartwood](https://hexdocs.pm/heartwood).
-
+Bigtrie's automated trader. Responsible for handling new signals, turning them
+to orders, and distributing them where needed. Stores funds and position
+state for logging and order creation.

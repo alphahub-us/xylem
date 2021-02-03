@@ -1,4 +1,4 @@
-defmodule Heartwood.Venue.Alpaca do
+defmodule Xylem.Venue.Alpaca do
   @moduledoc """
   The Alpaca venue
 
@@ -10,11 +10,11 @@ defmodule Heartwood.Venue.Alpaca do
   environment for those keys through your configuration file:
 
   ```
-  config :heartwood,
+  config :xylem,
     venues: [
       # ...
       my_account: {
-        Heartwood.Venue.Alpaca,
+        Xylem.Venue.Alpaca,
         credentials: %{id: "alpaca_client_id", secret: "alpaca_secret"},
         env: :paper
       },
@@ -25,10 +25,10 @@ defmodule Heartwood.Venue.Alpaca do
   Then, configure your bot as follows:
 
   ```
-  config :heartwood,
+  config :xylem,
     bots: [
       # ...
-      bot_name: {Heartwood.Bot.MyBot, venue: :my_account, ... }
+      bot_name: {Xylem.Bot.MyBot, venue: :my_account, ... }
       # ...
     ]
   ```
@@ -40,18 +40,18 @@ defmodule Heartwood.Venue.Alpaca do
 
   @conn [host: "api.alpaca.markets", path: "/stream", port: 443]
 
-  @behaviour Heartwood.Venue
+  @behaviour Xylem.Venue
 
-  @impl Heartwood.Venue
+  @impl Xylem.Venue
   def topic(name: name), do: get_topic(name)
 
-  @impl Heartwood.Venue
+  @impl Xylem.Venue
   def submit_order(venue, order, options), do: send(venue, {:submit_order, order, options})
 
-  @impl Heartwood.Venue
+  @impl Xylem.Venue
   def cancel_order(venue, order, options), do: send(venue, {:cancel_order, order, options})
 
-  @impl Heartwood.Venue
+  @impl Xylem.Venue
   def get_positions(venue), do: GenServer.call(venue, :positions)
 
   def start_link(config) do
@@ -77,7 +77,7 @@ defmodule Heartwood.Venue.Alpaca do
   end
 
   def handle_upgrade(_conn, %{credentials: %{id: id, secret: secret}} = state) do
-    Heartwood.Registry.register(state.name, __MODULE__)
+    Xylem.Registry.register(state.name, __MODULE__)
     {:send, json_frame(%{action: "authenticate", data: %{key_id: id, secret_key: secret}}), Map.delete(state, :credentials)}
   end
 
@@ -93,7 +93,7 @@ defmodule Heartwood.Venue.Alpaca do
         IO.puts "listening for Alpaca account updates"
         {:nosend, state}
       %{"stream" => "trade_updates", "data" => data} ->
-        Heartwood.Channel.broadcast(get_topic(state.name), {:venue, normalize(data)})
+        Xylem.Channel.broadcast(get_topic(state.name), {:venue, normalize(data)})
         {:nosend, state}
       other ->
         IO.inspect(other, label: "inbound message")

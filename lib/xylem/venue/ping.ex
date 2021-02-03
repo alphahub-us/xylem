@@ -1,10 +1,10 @@
-defmodule Heartwood.Venue.Ping do
+defmodule Xylem.Venue.Ping do
 
   use GenServer
 
-  @behaviour Heartwood.Venue
+  @behaviour Xylem.Venue
 
-  @impl Heartwood.Venue
+  @impl Xylem.Venue
   def topic(name: name) do
     "venue:#{name}"
   end
@@ -15,14 +15,14 @@ defmodule Heartwood.Venue.Ping do
 
   @impl true
   def init(config = %{name: name}) do
-    Heartwood.Registry.register(name, __MODULE__)
+    Xylem.Registry.register(name, __MODULE__)
     schedule_ping(config)
     {:ok, config}
   end
 
   @impl true
   def handle_info(:ping, state = %{name: name}) do
-    Heartwood.Channel.broadcast("venue:#{name}", {:venue, "ping"})
+    Xylem.Channel.broadcast("venue:#{name}", {:venue, "ping"})
     schedule_ping(state)
     {:noreply, state}
   end

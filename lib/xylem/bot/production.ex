@@ -1,8 +1,8 @@
-defmodule Heartwood.Bot.Production do
+defmodule Xylem.Bot.Production do
 
   use GenServer
 
-  alias Heartwood.{Bot, Venue, Ledger}
+  alias Xylem.{Bot, Venue, Ledger}
 
   def start_link(config), do: GenServer.start_link(__MODULE__, config)
 
@@ -26,7 +26,7 @@ defmodule Heartwood.Bot.Production do
 
   def handle_info({:venue, update}, state = %{name: name}) do
     IO.inspect(update, label: "venue update")
-    Heartwood.Logger.record_order_event(name, update, &Venue.event_to_csv/1)
+    Xylem.Logger.record_order_event(name, update, &Venue.event_to_csv/1)
     Ledger.process_event(update)
     {:noreply, state}
   end

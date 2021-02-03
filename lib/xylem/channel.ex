@@ -1,6 +1,6 @@
-defmodule Heartwood.Channel do
+defmodule Xylem.Channel do
   @moduledoc """
-  Wrapper around Phoenix.PubSub. This allows various heartwood processes to
+  Wrapper around Phoenix.PubSub. This allows various xylem processes to
   broadcast/subscribe to each other.
   """
 

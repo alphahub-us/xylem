@@ -1,4 +1,4 @@
-defmodule Heartwood.Market.Polygon do
+defmodule Xylem.Market.Polygon do
   @moduledoc """
   The Polygon market
 
@@ -9,11 +9,11 @@ defmodule Heartwood.Market.Polygon do
 
   To use this market, you pass in your API key through the configuration file:
   ```
-  config :heartwood,
+  config :xylem,
     markets: [
       # ...
       polygon_stocks: {
-        Heartwood.Market.Polygon,
+        Xylem.Market.Polygon,
         credentials: %{api_key: "your_polygon_key"},
         endpoint: :realtime,
         cluster: :stocks
@@ -25,10 +25,10 @@ defmodule Heartwood.Market.Polygon do
   Then, configure your bot as follows:
 
   ```
-  config :heartwood,
+  config :xylem,
     bots: [
       # ...
-      bot_name: {Heartwood.Bot.MyBot, market: :polygon_stocks, ...}
+      bot_name: {Xylem.Bot.MyBot, market: :polygon_stocks, ...}
       # ...
     ]
   ```
@@ -42,9 +42,9 @@ defmodule Heartwood.Market.Polygon do
   """
   use Axil
 
-  @behaviour Heartwood.Market
+  @behaviour Xylem.Market
 
-  @impl Heartwood.Market
+  @impl Xylem.Market
   def topic(%{type: type, symbol: symbol}), do: get_topic(type, symbol)
   def topic(_), do: []
 
@@ -86,7 +86,7 @@ defmodule Heartwood.Market.Polygon do
       [%{"ev" => "status", "status" => "success"}] ->
         {:nosend, state}
       list = [%{"ev" => event, "sym" => symbol} | _rest] ->
-        Heartwood.Channel.broadcast(get_topic(event, symbol), list)
+        Xylem.Channel.broadcast(get_topic(event, symbol), list)
         {:nosend, state}
       other ->
         IO.inspect(other, label: "inbound message")

@@ -1,17 +1,17 @@
-defmodule Heartwood.Bot do
+defmodule Xylem.Bot do
 
   @spec subscribe(module | {pid | module, keyword}) :: [:ok | {:error, term}]
   def subscribe({name, options}) do
     options = Keyword.put(options, :name, name)
 
     name
-    |> Heartwood.Registry.lookup()
+    |> Xylem.Registry.lookup()
     |> case do
       {_pid, module} -> apply(module, :topic, [options])
       _ -> apply(name, :topic, [options])
     end
     |> List.wrap()
-    |> Enum.map(&Heartwood.Channel.subscribe/1)
+    |> Enum.map(&Xylem.Channel.subscribe/1)
   end
 
   def subscribe(module), do: subscribe({module, []})
@@ -31,7 +31,7 @@ defmodule Heartwood.Bot do
     |> Enum.each(&subscribe/1)
 
     with {:ok, name} <- Keyword.fetch(config, :name) do
-      Heartwood.Logger.start(Keyword.merge([log_path: "/tmp/#{name}.log"], config))
+      Xylem.Logger.start(Keyword.merge([log_path: "/tmp/#{name}.log"], config))
     end
 
     {:ok, Enum.into(config, %{})}
