@@ -1,6 +1,6 @@
-defmodule Xylem.Market do
+defmodule Xylem.Data do
   @moduledoc """
-  Behaviour for Xylem markets. Xylem expects all markets to broadcast
+  Behaviour for Xylem data sources. Xylem expects all data sources to broadcast
   asset updates on well-known channels.
   """
 

@@ -1,45 +1,4 @@
-defmodule Xylem.Market.Polygon do
-  @moduledoc """
-  The Polygon market
-
-  A WebSockets client that listens on Polygon.io's endpoints for market
-  updates.
-
-  ### Configuration
-
-  To use this market, you pass in your API key through the configuration file:
-  ```
-  config :xylem,
-    markets: [
-      # ...
-      polygon_stocks: {
-        Xylem.Market.Polygon,
-        credentials: %{api_key: "your_polygon_key"},
-        endpoint: :realtime,
-        cluster: :stocks
-      },
-      #...
-    ],
-  ```
-
-  Then, configure your bot as follows:
-
-  ```
-  config :xylem,
-    bots: [
-      # ...
-      bot_name: {Xylem.Bot.MyBot, market: :polygon_stocks, ...}
-      # ...
-    ]
-  ```
-
-  ### Options
-
-  - `:endpoint` - The endpoint you want to connect to. Use `:realtime` or
-    `:delayed`. Default is `:realtime`.
-  - `:cluster` - The cluster you want to connect to. Choose one of `:stocks`,
-    `:forex`, or `:crypto`. Default is `:stocks`.
-  """
+defmodule Xylem.Data.Polygon do
   use Axil
 
   @behaviour Xylem.Market
