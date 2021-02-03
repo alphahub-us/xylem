@@ -1,9 +1,9 @@
 defmodule Xylem.Data.Polygon do
   use Axil
 
-  @behaviour Xylem.Market
+  @behaviour Xylem.Data
 
-  @impl Xylem.Market
+  @impl Xylem.Data
   def topic(%{type: type, symbol: symbol}), do: get_topic(type, symbol)
   def topic(_), do: []
 

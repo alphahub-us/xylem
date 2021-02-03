@@ -1,9 +1,9 @@
-defmodule Xylem.Market.IEx do
-  @topic "market:iex"
+defmodule Xylem.Data.IEx do
+  @topic "data:iex"
 
-  @behaviour Xylem.Market
+  @behaviour Xylem.Data
 
-  @impl Xylem.Market
+  @impl Xylem.Data
   def topic(_), do: @topic
 
   def send_event(event), do: Xylem.Channel.broadcast(@topic, {:market, event})
