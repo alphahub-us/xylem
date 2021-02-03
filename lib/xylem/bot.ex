@@ -10,7 +10,6 @@ defmodule Xylem.Bot do
          {:ok, channels} <- apply(module, :topic, [options]) do
       channels
       |> List.wrap()
-      |> IO.inspect(label: "channel")
       |> Enum.map(&Xylem.Channel.subscribe/1)
     else
       _other ->  Logger.warn "unable to subscribe to #{inspect name}"
