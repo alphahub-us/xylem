@@ -108,6 +108,15 @@ defmodule Xylem.Ledger do
     end
   end
 
+  def generate_id(bot), do: generate_id(bot, generate_group())
+
+  def generate_id(bot, group) do
+    id = hd Enum.reverse(String.split(UUID.uuid4(), "-"))
+    Enum.join(["xylem", bot, group, id], "-")
+  end
+
+  defp generate_group(), do: hd tl String.split(UUID.uuid4(), "-")
+
   defp apply_gain(bot, positions) do
     with {:ok, funds} <- get_funds(bot),
          {gain, 0} <- accumulate(positions) do
@@ -121,11 +130,8 @@ defmodule Xylem.Ledger do
   defp from_cents(funds), do: Decimal.div(to_decimal(funds), 100)
 
   defp add_ids(orders, bot) do
-    [_, group | _] = String.split(UUID.uuid4(), "-")
-    Enum.map(orders, fn order ->
-      id = hd Enum.reverse(String.split(UUID.uuid4(), "-"))
-      Map.put(order, :id, Enum.join(["xylem", bot, group, id], "-"))
-    end)
+    group = generate_group()
+    Enum.map(orders, &Map.put(&1, :id, generate_id(bot, group)))
   end
 
   defp add_quantity(signal = %{type: :close, symbol: symbol}, bot, positions) do
