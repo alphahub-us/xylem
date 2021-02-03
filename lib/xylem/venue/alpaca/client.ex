@@ -16,7 +16,8 @@ defmodule Xylem.Venue.Alpaca.Client do
   end
 
   def submit_order(client, order, options) do
-    Agent.get(client, &Alpaca.Orders.create(&1, to_params(order, Keyword.get(options, :type, :market))))
+    params = to_params(order, Keyword.get(options, :type, :market))
+    Agent.get(client, &Alpaca.Orders.create(&1, params))
   end
 
   def cancel_order(client, order, _) do
