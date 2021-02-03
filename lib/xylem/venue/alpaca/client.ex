@@ -16,12 +16,12 @@ defmodule Xylem.Venue.Alpaca.Client do
   end
 
   def submit_order(client, order, options) do
-    Agent.cast(client, &Alpaca.Orders.create(&1, to_params(order, Keyword.get(options, :type, :market))))
+    Agent.get(client, &Alpaca.Orders.create(&1, to_params(order, Keyword.get(options, :type, :market))))
   end
 
   def cancel_order(client, order, _) do
     case Agent.get(client, &Alpaca.Orders.retrieve_by_client_order_id(&1, order.id)) do
-      {:ok, order} -> Agent.cast(client, &Alpaca.Orders.delete(&1, order["id"]))
+      {:ok, order} -> Agent.get(client, &Alpaca.Orders.delete(&1, order["id"]))
       _ -> :ok
     end
   end
@@ -38,5 +38,5 @@ defmodule Xylem.Venue.Alpaca.Client do
   end
 
   defp type_params(_, :market), do: %{type: "market"}
-  defp type_params(%{price: price}, :limit), do: %{type: "limit", limit_price: price}
+  defp type_params(%{price: price}, :limit), do: %{type: "limit", limit_price: Decimal.to_float(price)}
 end

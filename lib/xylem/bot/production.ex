@@ -15,7 +15,8 @@ defmodule Xylem.Bot.Production do
     positions = Venue.get_positions(venue)
     signals
     |> Ledger.prepare_orders(name, positions)
-    |> Enum.map(&Venue.submit_order(venue, &1))
+    |> IO.inspect(label: "orders")
+    |> Enum.map(&Venue.submit_order(venue, &1, type: :limit))
     {:noreply, state}
   end
 

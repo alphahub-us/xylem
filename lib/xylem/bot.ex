@@ -12,7 +12,7 @@ defmodule Xylem.Bot do
       |> List.wrap()
       |> Enum.map(&Xylem.Channel.subscribe/1)
     else
-      _other ->  Logger.warn "unable to subscribe to #{inspect name}"
+      _other ->  Logger.debug "unable to subscribe to #{inspect name}"
     end
   end
 

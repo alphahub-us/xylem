@@ -164,7 +164,7 @@ defmodule Xylem.Ledger do
   defp maybe_breakup(signal), do: signal
 
   defp extract_bot_from_event(%{id: "xylem-" <> rest}) do
-    {:ok, rest |> String.split("-") |> hd() |> String.to_atom()}
+    {:ok, rest |> String.split("-") |> hd()}
   end
   defp extract_bot_from_event(_), do: {:error, :no_bot}
 
