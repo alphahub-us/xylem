@@ -17,6 +17,7 @@ defmodule Xylem.Logger do
 
   def start(options) do
     with {:ok, id} <- Keyword.fetch(options, :name),
+         id = String.to_atom(id),
          {:ok, _pid} <- Logger.add_backend({LoggerFileBackend, id}) do
       Logger.configure_backend({LoggerFileBackend, id}, extract_config(options))
     else
