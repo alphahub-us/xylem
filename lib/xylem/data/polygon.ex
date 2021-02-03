@@ -45,7 +45,7 @@ defmodule Xylem.Data.Polygon do
       [%{"ev" => "status", "status" => "success"}] ->
         {:nosend, state}
       list = [%{"ev" => event, "sym" => symbol} | _rest] ->
-        Xylem.Channel.broadcast(get_topic(event, symbol), list)
+        Xylem.Channel.broadcast(get_topic(event, symbol), {:data, list})
         {:nosend, state}
       other ->
         IO.inspect(other, label: "inbound message")

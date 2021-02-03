@@ -15,7 +15,7 @@ defmodule Xylem.Bot.Echo do
     {:noreply, config}
   end
 
-  def handle_info({:market, data}, config) do
+  def handle_info({:data, data}, config) do
     IO.inspect(data, label: "market data")
     {:noreply, config}
   end

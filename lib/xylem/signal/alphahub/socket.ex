@@ -34,7 +34,7 @@ defmodule Xylem.Signal.AlphaHub.Socket do
     |> case do
       [_, _, "algorithms:" <> id, "new_signals", signals] ->
         {:ok, topic} = AlphaHub.topic(id: id)
-        Channel.broadcast(topic, {:source, normalize(signals)})
+        Channel.broadcast(topic, {:signal, normalize(signals)})
       [_, _, _topic, "phx_reply", %{ "status" => "ok" }] -> :ok
       message -> IO.inspect(message)
     end
