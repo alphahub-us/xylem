@@ -52,22 +52,20 @@ defmodule Xylem.Venue do
   end
 
   def submit_order(venue_name, order, options \\ []) do
-    case Xylem.Registry.lookup(venue_name) do
-      {pid, module} -> apply(module, :submit_order, [pid, order, options])
-      _ -> {:error, :venue_not_found}
-    end
+    apply_to_venue(venue_name, :submit_order, [order, options])
   end
 
   def cancel_order(venue_name, order, options \\ []) do
-    case Xylem.Registry.lookup(venue_name) do
-      {pid, module} -> apply(module, :cancel_order, [pid, order, options])
-      _ -> {:error, :venue_not_found}
-    end
+    apply_to_venue(venue_name, :cancel_order, [order, options])
   end
 
   def get_positions(venue_name) do
-    case Xylem.Registry.lookup(venue_name) do
-      {pid, module} -> apply(module, :get_positions, [pid])
+    apply_to_venue(venue_name, :get_positions, [])
+  end
+
+  defp apply_to_venue(name, func, args) do
+    case Xylem.Registry.lookup(name) do
+      {pid, module} -> apply(module, func, [pid | args])
       _ -> {:error, :venue_not_found}
     end
   end
