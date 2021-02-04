@@ -1,10 +1,13 @@
 defmodule Xylem.Data.Polygon do
   use Axil
 
+  @me __MODULE__
+
   @behaviour Xylem.Data
 
   @impl Xylem.Data
   def topic(%{type: type, symbol: symbol}), do: {:ok, get_topic(type, symbol)}
+  def topic(symbol) when is_binary(symbol), do: topic(%{type: "A", symbol: symbol})
   def topic(_), do: {:ok, []}
 
   def start_link(config) do
@@ -14,9 +17,16 @@ defmodule Xylem.Data.Polygon do
         path: from_cluster(Keyword.get(config, :cluster, :stocks)),
         port: 443
       ]
-      Axil.start_link(conn, __MODULE__, %{"key" => key, "ready" => false})
+      Axil.start_link(conn, @me, %{"key" => key, "ready" => false}, name: get_name(config))
     else
       :error -> {:error, :no_key}
+    end
+  end
+
+  defp get_name(config) do
+    case Keyword.fetch(config, :name) do
+      {:ok, name} -> {:via, Registry, {Xylem.Registry, name, @me}}
+      :error -> @me
     end
   end
 

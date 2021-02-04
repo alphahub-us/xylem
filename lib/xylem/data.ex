@@ -7,7 +7,14 @@ defmodule Xylem.Data do
   @doc """
   Retrieves the topic or topics for a market, provided the given options.
   """
-  @callback topic(options :: keyword) :: {:ok, String.t | [String.t]} | {:error, :invalid_topic}
+  @callback topic(options :: term) :: {:ok, String.t | [String.t]} | {:error, :invalid_topic}
 
   @optional_callbacks topic: 1
+
+  def topic(data_name, options) do
+    case Xylem.Registry.lookup(data_name) do
+      {_pid, module} -> apply(module, :topic, [options])
+      _ -> {:error, :data_not_found}
+    end
+  end
 end
