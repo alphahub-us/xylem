@@ -24,10 +24,10 @@ defmodule Xylem.LedgerTest do
       updates = [
         base_update,
         %{base_update | type: :partial, qty: 1, price: 1},
-        %{base_update | type: :fill, qty: 2, price: 1.1},
+        %{base_update | type: :fill, qty: 1, price: 1.1},
         %{base_update | side: :sell},
         %{base_update | side: :sell, type: :partial, qty: 1, price: 2},
-        %{base_update | side: :sell, type: :fill, qty: 2, price: 2},
+        %{base_update | side: :sell, type: :fill, qty: 1, price: 2},
       ]
 
       Enum.each(updates, &Ledger.process_event/1)
@@ -41,10 +41,10 @@ defmodule Xylem.LedgerTest do
       updates = [
         %{base_update | side: :sell},
         %{base_update | side: :sell, type: :partial, qty: 1, price: 2},
-        %{base_update | side: :sell, type: :fill, qty: 2, price: 2.1},
+        %{base_update | side: :sell, type: :fill, qty: 1, price: 2.1},
         base_update,
         %{base_update | type: :partial, qty: 1, price: 1.5},
-        %{base_update | type: :fill, qty: 2, price: 1},
+        %{base_update | type: :fill, qty: 1, price: 1},
       ]
 
       Enum.each(updates, &Ledger.process_event/1)
@@ -60,15 +60,15 @@ defmodule Xylem.LedgerTest do
         %{base_update | side: :sell},
         %{base_update | side: :sell, type: :partial, qty: 1, price: 2},
         external_update,
-        %{base_update | side: :sell, type: :fill, qty: 2, price: 2.1},
+        %{base_update | side: :sell, type: :fill, qty: 1, price: 2.1},
         %{external_update | type: :partial, qty: 1, price: 1},
         %{external_update | type: :fill, qty: 1, price: 1},
         %{external_update | side: :sell},
         base_update,
         %{base_update | type: :partial, qty: 1, price: 1.5},
         %{external_update | side: :sell, type: :partial, qty: 1, price: 1},
-        %{external_update | side: :sell, type: :fill, qty: 2, price: 1},
-        %{base_update | type: :fill, qty: 2, price: 1},
+        %{external_update | side: :sell, type: :fill, qty: 1, price: 1},
+        %{base_update | type: :fill, qty: 1, price: 1},
       ]
 
       Enum.each(updates, &Ledger.process_event/1)
@@ -83,16 +83,16 @@ defmodule Xylem.LedgerTest do
       updates = [
         %{base_update | side: :sell},
         %{base_update | side: :sell, type: :partial, qty: 1, price: 2},
-        %{base_update | side: :sell, type: :fill, qty: 2, price: 2.1},
+        %{base_update | side: :sell, type: :fill, qty: 1, price: 2.1},
         base_update,
         %{base_update | type: :partial, qty: 1, price: 1.5},
-        %{base_update | type: :fill, qty: 2, price: 1},
+        %{base_update | type: :fill, qty: 1, price: 1},
         second_update,
         %{second_update | type: :partial, qty: 1, price: 1},
-        %{second_update | type: :fill, qty: 2, price: 1.1},
+        %{second_update | type: :fill, qty: 1, price: 1.1},
         %{second_update | side: :sell},
         %{second_update | side: :sell, type: :partial, qty: 1, price: 2},
-        %{second_update | side: :sell, type: :fill, qty: 2, price: 2.1},
+        %{second_update | side: :sell, type: :fill, qty: 1, price: 2.1},
       ]
 
       Enum.each(updates, &Ledger.process_event/1)
