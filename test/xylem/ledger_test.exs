@@ -53,6 +53,39 @@ defmodule Xylem.LedgerTest do
       assert {Decimal.new("1.6"), 0} == Ledger.accumulate(positions)
     end
 
+    test "deletes new positions without any fills on cancel" do
+      base_update = %{type: :new, side: :buy, qty: 0, price: 0, symbol: "A", id: "xylem-a"}
+      updates = [
+        base_update,
+        %{base_update | type: :cancel}
+      ]
+
+      Enum.each(updates, &Ledger.process_event/1)
+
+      assert {:error, :no_position} = Ledger.last_position("a", "A")
+    end
+
+    test "does not delete open positions on cancel" do
+      base_update = %{type: :new, side: :buy, qty: 0, price: 0, symbol: "A", id: "xylem-a"}
+      updates = [
+        base_update,
+        %{base_update | type: :partial, qty: 1, price: 1},
+        %{base_update | type: :fill, qty: 1, price: 1.1},
+      ]
+
+      Enum.each(updates, &Ledger.process_event/1)
+      {:ok, {_,positions}} = Ledger.last_position("a", "A")
+
+      cancellation = [
+        %{base_update | side: :sell},
+        %{base_update | side: :sell, type: :cancel}
+      ]
+
+      Enum.each(cancellation, &Ledger.process_event/1)
+
+      assert {:ok, {_, ^positions}} = Ledger.last_position("a", "A")
+    end
+
     test "isn't caught up by random other events" do
       base_update = %{type: :new, side: :buy, qty: 0, price: 0, symbol: "A", id: "xylem-a"}
       external_update = %{base_update | id: "other-id"}
