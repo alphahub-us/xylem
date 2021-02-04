@@ -24,7 +24,7 @@ defmodule Xylem.Ledger do
       case last_open_position(bot, symbol) do
         {:error, :no_open_position} when type == :new ->
           CubDB.put_new(@db, {:positions, bot, symbol, epoch()}, [])
-        {:ok, key, _} when type == :cancel ->
+        {:ok, key, []} when type == :cancel ->
           CubDB.delete(@db, key)
         {:ok, key, positions} when type in [:partial, :fill] ->
           new_positions = update_positions(positions, event)
