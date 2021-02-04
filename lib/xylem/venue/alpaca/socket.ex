@@ -55,8 +55,7 @@ defmodule Xylem.Venue.Alpaca.Socket do
   defp normalize(:type, %{"event" => "canceled"}), do: :cancel
   defp normalize(:symbol, %{"order" => %{"symbol" => symbol}}), do: symbol
   defp normalize(:side, %{"order" => %{"side" => side}}), do: String.to_existing_atom(side)
-  defp normalize(:qty, %{"event" => "fill", "qty" => qty}), do: parse_qty(qty)
-  defp normalize(:qty, %{"position_qty" => qty}), do: parse_qty(qty)
+  defp normalize(:qty, %{"qty" => qty}), do: parse_qty(qty)
   defp normalize(:qty, %{"order" => %{"qty" => qty}}), do: parse_qty(qty)
   defp normalize(:price, %{"price" => price}), do: Decimal.new(price)
   defp normalize(:price, %{"order" => %{"limit_price" => price}}) when not is_nil(price), do: Decimal.new(price)

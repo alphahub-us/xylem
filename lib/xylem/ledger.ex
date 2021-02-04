@@ -185,8 +185,6 @@ defmodule Xylem.Ledger do
     end
   end
 
-  defguardp same_sign(first, second) when (first < 0 and second < 0) or (first > 0 and second > 0)
-
   defp update_positions(current, update = %{side: :sell}) do
     update_positions(current, Map.delete(%{update | qty: update.qty * -1}, :side))
   end
@@ -197,11 +195,6 @@ defmodule Xylem.Ledger do
 
   defp update_positions([], %{qty: qty, price: price}) do
     [{to_decimal(price), qty}]
-  end
-
-  defp update_positions(updates = [{_, last_qty} | _], %{qty: qty, price: price})
-  when same_sign(last_qty, qty) do
-    [{to_decimal(price), qty - last_qty} | updates]
   end
 
   defp update_positions(updates, %{qty: qty, price: price}) do
