@@ -1,6 +1,8 @@
 defmodule Xylem.Venue.Alpaca.Socket do
   use Axil
 
+  require Logger
+
   @conn [host: "api.alpaca.markets", path: "/stream", port: 443]
 
   def start_link(config) do
@@ -41,7 +43,7 @@ defmodule Xylem.Venue.Alpaca.Socket do
   def handle_receive(:close, state), do: {:close, state}
 
   defp normalize(update) do
-    IO.inspect(update, label: "unnormalized update")
+    Logger.debug "unnormalized update: #{inspect update}"
     [:id, :timestamp, :type, :side, :symbol, :qty, :price]
     |> Enum.reduce(%{}, &Map.put(&2, &1, normalize(&1, update)))
   end
