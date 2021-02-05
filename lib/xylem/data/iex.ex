@@ -4,7 +4,7 @@ defmodule Xylem.Data.IEx do
   @behaviour Xylem.Data
 
   @impl Xylem.Data
-  def topic(_), do: @topic
+  def topic(_), do: {:ok, @topic}
 
   def send_event(event), do: Xylem.Channel.broadcast(@topic, {:market, event})
 end

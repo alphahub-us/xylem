@@ -6,9 +6,9 @@ defmodule Xylem.Bot do
   def subscribe({name, options}) do
     options = Keyword.put(options, :name, name)
 
-    with {_pid, module} <- Xylem.Registry.lookup(name),
-         {:ok, channels} <- apply(module, :topic, [options]) do
-      channels
+    with module when not is_nil(module) <- get_topic_module(name),
+         {:ok, topics} <- apply(module, :topic, [options]) do
+      topics
       |> List.wrap()
       |> Enum.map(&Xylem.Channel.subscribe/1)
     else
@@ -20,6 +20,19 @@ defmodule Xylem.Bot do
 
   @spec subscribe(pid | module, keyword) :: [:ok | {:error, term}]
   def subscribe(name, options), do: subscribe({name, options})
+
+  defp get_topic_module(name) do
+    module = case Xylem.Registry.lookup(name) do
+      {_pid, module} -> module
+      nil -> name
+    end
+
+    if exports_topic?(module), do: module
+  end
+
+  defp exports_topic?(mod) do
+    Enum.all?([&Code.ensure_loaded?/1, &function_exported?(&1, :topic, 1)], & &1.(mod))
+  end
 
   @doc """
   Generic bot initialization function. Subscribes to venue, market, source;
