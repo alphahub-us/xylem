@@ -11,6 +11,7 @@ defmodule Xylem.Application do
       Xylem.Supervisor,
       {Xylem.Loader, modules()},
       ledger(args),
+      conditions(args)
     ]
     |> List.flatten()
 
@@ -20,6 +21,9 @@ defmodule Xylem.Application do
 
   def ledger(env: :test), do: []
   def ledger(_), do: [{Xylem.Ledger, Application.get_env(:xylem, :ledger, [])}]
+
+  def conditions(env: :test), do: []
+  def conditions(_), do: [{Xylem.Conditions, []}]
 
   def modules() do
     Application.get_all_env(:xylem)
