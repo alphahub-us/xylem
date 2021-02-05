@@ -1,6 +1,7 @@
 defmodule Xylem.Data.Polygon do
   use Axil
 
+  alias Decimal, as: D
   @me __MODULE__
 
   @behaviour Xylem.Data
@@ -54,8 +55,12 @@ defmodule Xylem.Data.Polygon do
         {:nosend, %{state | "ready" => true}}
       [%{"ev" => "status", "status" => "success"}] ->
         {:nosend, state}
-      list = [%{"ev" => event, "sym" => symbol} | _rest] ->
-        Xylem.Channel.broadcast(get_topic(event, symbol), {:data, list})
+      list = [%{"ev" => ev} | _] when ev in ["T", "Q", "A", "AM"] ->
+        list
+        |> Enum.group_by(&get_topic/1)
+        |> Enum.each(fn {topic, list} ->
+          Xylem.Channel.broadcast(topic, {:data, normalize(list)})
+        end)
         {:nosend, state}
       other ->
         IO.inspect(other, label: "inbound message")
@@ -110,6 +115,7 @@ defmodule Xylem.Data.Polygon do
     end)
   end
 
+  defp get_topic(%{"ev" => type, "sym" => symbol}), do: get_topic(type, symbol)
   defp get_topic(type, symbol), do: "polygon:#{type}:#{symbol}"
 
   defp subscribe_frame(tickers) when is_list(tickers), do: json_frame(%{action: "subscribe", params: Enum.join(tickers, ",")})
@@ -117,4 +123,29 @@ defmodule Xylem.Data.Polygon do
   defp unsubscribe_frame(ticker), do: json_frame(%{action: "unsubscribe", params: ticker})
 
   defp json_frame(contents), do: {:text, Jason.encode!(contents)}
+
+  defp normalize(data_list) when is_list(data_list) do
+    IO.inspect(data_list, label: "unnormalized data")
+    Enum.map(data_list, &normalize/1)
+  end
+
+  defp normalize(data) when is_map(data) do
+    [:symbol, :price]
+    |> Enum.reduce(%{}, &Map.put(&2, &1, normalize(&1, data)))
+  end
+
+  defp normalize(:symbol, %{"sym" => symbol}), do: symbol
+
+  defp normalize(:price, %{"ev" => "Q", "bp" => bid, "ap" => ask}) do
+    D.div(D.add(to_decimal(bid), to_decimal(ask)), D.new(2))
+  end
+
+  defp normalize(:price, %{"ev" => "T", "p" => price}), do: to_decimal(price)
+  defp normalize(:price, %{"ev" => "A", "a" => average}), do: to_decimal(average)
+  defp normalize(:price, %{"ev" => "AM", "a" => average}), do: to_decimal(average)
+
+  defp normalize(_, _), do: nil
+
+  defp to_decimal(number) when is_float(number), do: D.from_float(number)
+  defp to_decimal(number), do: D.new(number)
 end
