@@ -13,6 +13,18 @@ defmodule Xylem.Ledger do
     |> CubDB.start_link()
   end
 
+  def history(bot, type \\ :positions) do
+    {:ok, history} = case type do
+      :positions ->
+        CubDB.select(@db, min_key: {type, bot, 0, ""}, max_key: {type, bot, nil, "ZZZZ"}, reverse: true)
+      :funds ->
+        CubDB.select(@db, min_key: {type, bot, 0}, max_key: {type, bot, nil}, reverse: true)
+      _ ->
+        {:ok, []}
+    end
+    history
+  end
+
   @doc """
   Processes inbound order events
   """
@@ -23,7 +35,7 @@ defmodule Xylem.Ledger do
          {:ok, symbol} <- Map.fetch(event, :symbol) do
       case last_open_position(bot, symbol) do
         {:error, :no_open_position} when type == :new ->
-          CubDB.put_new(@db, {:positions, bot, symbol, epoch()}, [])
+          CubDB.put_new(@db, {:positions, bot, epoch(), symbol}, [])
         {:ok, key, []} when type == :cancel ->
           CubDB.delete(@db, key)
         {:ok, key, positions} when type in [:partial, :fill] ->
@@ -52,8 +64,8 @@ defmodule Xylem.Ledger do
   def last_position(bot, symbol) do
     CubDB.select(@db,
       reverse: true,
-      min_key: {:positions, bot, symbol, 0},
-      max_key: {:positions, bot, symbol, nil},
+      min_key: {:positions, bot, 0, symbol},
+      max_key: {:positions, bot, nil, symbol},
       pipe: [take: 1]
     )
     |> case do
