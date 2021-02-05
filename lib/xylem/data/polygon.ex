@@ -1,15 +1,31 @@
 defmodule Xylem.Data.Polygon do
   use Axil
 
+  require Logger
+
   alias Decimal, as: D
   @me __MODULE__
 
   @behaviour Xylem.Data
 
   @impl Xylem.Data
-  def topic(%{type: type, symbol: symbol}), do: {:ok, get_topic(type, symbol)}
   def topic(symbol) when is_binary(symbol), do: topic(%{type: "A", symbol: symbol})
+  def topic(%{type: type, symbol: symbol}), do: {:ok, to_topic(get_ticker(type, symbol))}
   def topic(_), do: {:ok, []}
+
+  @impl Xylem.Data
+  def subscribe(pid, topic) do
+    Xylem.Channel.subscribe(topic)
+    Logger.debug "subscribing to #{topic} (#{to_ticker(topic)})"
+    send(pid, {:subscribe, to_ticker(topic)})
+  end
+
+  @impl Xylem.Data
+  def unsubscribe(pid, topic) do
+    Xylem.Channel.unsubscribe(topic)
+    Logger.debug "unsubscribing from #{topic} (#{to_ticker(topic)})"
+    send(pid, {:unsubscribe, to_ticker(topic)})
+  end
 
   def start_link(config) do
     with {:ok, %{api_key: key}} <- Keyword.fetch(config, :credentials) do
@@ -57,9 +73,9 @@ defmodule Xylem.Data.Polygon do
         {:nosend, state}
       list = [%{"ev" => ev} | _] when ev in ["T", "Q", "A", "AM"] ->
         list
-        |> Enum.group_by(&get_topic/1)
-        |> Enum.each(fn {topic, list} ->
-          Xylem.Channel.broadcast(topic, {:data, normalize(list)})
+        |> Enum.group_by(&get_ticker/1)
+        |> Enum.each(fn {ticker, list} ->
+          Xylem.Channel.broadcast(to_topic(ticker), {:data, normalize(list)})
         end)
         {:nosend, state}
       other ->
@@ -115,8 +131,11 @@ defmodule Xylem.Data.Polygon do
     end)
   end
 
-  defp get_topic(%{"ev" => type, "sym" => symbol}), do: get_topic(type, symbol)
-  defp get_topic(type, symbol), do: "polygon:#{type}:#{symbol}"
+  defp get_ticker(%{"ev" => type, "sym" => symbol}), do: get_ticker(type, symbol)
+  defp get_ticker(type, symbol), do: "#{type}.#{symbol}"
+
+  defp to_ticker("polygon:" <> ticker), do: ticker
+  defp to_topic(ticker), do: "polygon:" <> ticker
 
   defp subscribe_frame(tickers) when is_list(tickers), do: json_frame(%{action: "subscribe", params: Enum.join(tickers, ",")})
   defp subscribe_frame(ticker), do: json_frame(%{action: "subscribe", params: ticker})
@@ -125,7 +144,7 @@ defmodule Xylem.Data.Polygon do
   defp json_frame(contents), do: {:text, Jason.encode!(contents)}
 
   defp normalize(data_list) when is_list(data_list) do
-    IO.inspect(data_list, label: "unnormalized data")
+    Logger.debug "unnormalized data: #{inspect data_list}"
     Enum.map(data_list, &normalize/1)
   end
 

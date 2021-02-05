@@ -2,7 +2,7 @@ defmodule Xylem.Bot.Production do
 
   use GenServer
 
-  alias Xylem.{Bot, Venue, Ledger, Conditions, Data, Channel}
+  alias Xylem.{Bot, Venue, Ledger, Conditions, Data}
   alias Decimal, as: D
 
   def start_link(config), do: GenServer.start_link(__MODULE__, config)
@@ -32,8 +32,9 @@ defmodule Xylem.Bot.Production do
   def handle_info({:venue, update = %{symbol: symbol}}, state = %{name: name, data: data}) do
     IO.inspect(update, label: "[#{name}] venue update")
     with {:ok, type} when type in [:fill, :cancel] <- Map.fetch(update, :type),
-         ref when not is_reference(ref) <- Conditions.remove(update) do
-      Channel.unsubscribe(Data.topic(data, symbol))
+         ref when not is_reference(ref) <- Conditions.remove(update),
+         {:ok, topic} <- Data.topic(data, symbol) do
+      Data.unsubscribe(data, topic)
     end
     Xylem.Logger.record_order_event(name, update, &Venue.event_to_csv/1)
     Ledger.process_event(update)
@@ -41,7 +42,9 @@ defmodule Xylem.Bot.Production do
   end
 
   def handle_info({:condition_added, %{symbol: symbol}, _condition}, state = %{data: data}) do
-    Channel.subscribe(Data.topic(data, symbol))
+    with {:ok, topic} <- Data.topic(data, symbol) do
+      Data.subscribe(data, topic)
+    end
     {:noreply, state}
   end
 

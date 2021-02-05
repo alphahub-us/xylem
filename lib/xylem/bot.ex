@@ -21,7 +21,7 @@ defmodule Xylem.Bot do
   @spec subscribe(pid | module, keyword) :: [:ok | {:error, term}]
   def subscribe(name, options), do: subscribe({name, options})
 
-  defp get_topic_module(name) do
+  def get_topic_module(name) do
     module = case Xylem.Registry.lookup(name) do
       {_pid, module} -> module
       nil -> name
