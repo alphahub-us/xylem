@@ -290,5 +290,20 @@ defmodule Xylem.LedgerTest do
                        |> Enum.map(&Map.take(&1, [:price, :symbol, :side, :qty]))
       assert order == %{price: Decimal.new("1.5"), symbol: "A", side: :buy, qty: 1}
     end
+
+    test "does not prepare any close orders if there's no open account position" do
+      base_update = %{type: :new, side: :buy, qty: 0, price: 0, symbol: "A", id: "xylem-a"}
+      signals = [
+        %{type: :close, symbol: "A", price: Decimal.new("1.5"), side: :sell, weight: Decimal.new("1.0")}
+      ]
+      updates = [
+        base_update,
+        %{ base_update | type: :fill, qty: 1, price: 1}
+      ]
+
+      Enum.each(updates, &Ledger.process_event/1)
+
+      assert [] == Ledger.prepare_orders(signals, "a", [])
+    end
   end
 end
