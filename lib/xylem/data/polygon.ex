@@ -160,8 +160,8 @@ defmodule Xylem.Data.Polygon do
   end
 
   defp normalize(:price, %{"ev" => "T", "p" => price}), do: to_decimal(price)
-  defp normalize(:price, %{"ev" => "A", "a" => average}), do: to_decimal(average)
-  defp normalize(:price, %{"ev" => "AM", "a" => average}), do: to_decimal(average)
+  defp normalize(:price, %{"ev" => "A", "c" => price}), do: to_decimal(price)
+  defp normalize(:price, %{"ev" => "AM", "c" => price}), do: to_decimal(price)
 
   defp normalize(_, _), do: nil
 
