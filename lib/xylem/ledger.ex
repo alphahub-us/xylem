@@ -14,15 +14,15 @@ defmodule Xylem.Ledger do
   end
 
   def history(bot, type \\ :positions) do
-    {:ok, history} = case type do
+    case type do
       :positions ->
-        CubDB.select(@db, min_key: {type, bot, "", 0}, max_key: {type, bot, "ZZZZ", nil}, reverse: true)
+        {:ok, positions} = CubDB.select(@db, min_key: {type, bot, "", 0}, max_key: {type, bot, "ZZZZ", nil}, reverse: true)
+        Enum.sort(positions, fn {{_, _, _, ts1}, _}, {{_, _, _, ts2}, _} -> ts1 >= ts2 end)
       :funds ->
-        CubDB.select(@db, min_key: {type, bot, 0}, max_key: {type, bot, nil}, reverse: true)
-      _ ->
-        {:ok, []}
+        {:ok, funds} = CubDB.select(@db, min_key: {type, bot, 0}, max_key: {type, bot, nil}, reverse: true)
+        funds
+      _ -> []
     end
-    history
   end
 
   @doc """
