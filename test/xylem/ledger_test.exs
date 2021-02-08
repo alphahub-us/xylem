@@ -53,6 +53,26 @@ defmodule Xylem.LedgerTest do
       assert {Decimal.new("1.6"), 0} == Ledger.accumulate(positions)
     end
 
+    test "handles multiple positions" do
+      base_update = %{type: :new, side: :buy, qty: 0, price: 0, symbol: "A", id: "xylem-a"}
+      updates = [
+        base_update,
+        %{base_update | type: :partial, qty: 1, price: 1},
+        %{base_update | type: :fill, qty: 1, price: 1.1},
+        %{base_update | symbol: "B"},
+        %{base_update | symbol: "B", type: :partial, qty: 1, price: 2},
+        %{base_update | symbol: "B", type: :fill, qty: 1, price: 2},
+      ]
+
+      Enum.each(updates, &Ledger.process_event/1)
+
+      {:ok, {_, a_positions}} = Ledger.last_position("a", "A")
+      {:ok, {_, b_positions}} = Ledger.last_position("a", "B")
+      assert length(a_positions) == 2
+      assert length(b_positions) == 2
+      assert a_positions != b_positions
+    end
+
     test "deletes new positions without any fills on cancel" do
       base_update = %{type: :new, side: :buy, qty: 0, price: 0, symbol: "A", id: "xylem-a"}
       updates = [
