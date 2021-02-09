@@ -14,7 +14,7 @@ defmodule Xylem.Bot.Production do
   def handle_info({:signal, signals}, state = %{venue: venue, name: name}) do
     IO.inspect(signals, label: "[#{name}] signals")
     positions = Venue.get_positions(venue)
-    orders = Ledger.prepare_orders(signals, name, positions)
+    orders = Ledger.prepare_orders(signals, name, positions) |> IO.inspect(label: "[#{name}] orders")
     Enum.each(orders, fn order ->
       Conditions.add(order, {condition_for(order), {:cancel, order}}, 60_000)
       Venue.submit_order(venue, order, type: :limit)
