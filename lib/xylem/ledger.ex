@@ -1,7 +1,7 @@
 defmodule Xylem.Ledger do
   @db __MODULE__
 
-  import NaiveDateTime, only: [diff: 3, utc_now: 0]
+  import NaiveDateTime, only: [diff: 3, add: 3, utc_now: 0, compare: 2]
 
   def child_spec(opts) do
     %{id: @db, start: {@db, :start_link, [opts]}}
@@ -16,10 +16,23 @@ defmodule Xylem.Ledger do
   def history(bot, type \\ :positions) do
     case type do
       :positions ->
-        {:ok, positions} = CubDB.select(@db, min_key: {type, bot, "", 0}, max_key: {type, bot, "ZZZZ", nil}, reverse: true)
-        Enum.sort(positions, fn {{_, _, _, ts1}, _}, {{_, _, _, ts2}, _} -> ts1 >= ts2 end)
+        {:ok, positions} = CubDB.select(
+          @db,
+          min_key: {type, bot, "", 0},
+          max_key: {type, bot, "ZZZZ", nil},
+          reverse: true,
+          pipe: [map: fn {{_,_,symbol,ts}, v} -> {from_epoch(ts), symbol, v} end]
+        )
+        positions
+        |> Enum.sort(fn {ts1, _, _}, {ts2, _, _} -> compare(ts1, ts2) in [:gt, :eq] end)
       :funds ->
-        {:ok, funds} = CubDB.select(@db, min_key: {type, bot, 0}, max_key: {type, bot, nil}, reverse: true)
+        {:ok, funds} = CubDB.select(
+          @db,
+          min_key: {type, bot, 0},
+          max_key: {type, bot, nil},
+          reverse: true,
+          pipe: [map: fn {{_, _, ts}, v} -> {from_epoch(ts), v} end]
+        )
         funds
       _ -> []
     end
@@ -187,6 +200,7 @@ defmodule Xylem.Ledger do
   defp extract_bot_from_event(_), do: {:error, :no_bot}
 
   defp epoch(), do: diff(utc_now(), ~N[1970-01-01 00:00:00], :millisecond)
+  defp from_epoch(ts), do: add(~N[1970-01-01 00:00:00], ts, :millisecond)
 
   defp last_open_position(bot, symbol) do
     with {:ok, {key, position}} <- last_position(bot, symbol),
