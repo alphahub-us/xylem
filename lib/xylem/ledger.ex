@@ -31,7 +31,7 @@ defmodule Xylem.Ledger do
           min_key: {type, bot, 0},
           max_key: {type, bot, nil},
           reverse: true,
-          pipe: [map: fn {{_, _, ts}, v} -> {from_epoch(ts), v} end]
+          pipe: [map: fn {{_, _, ts}, funds} -> {from_epoch(ts), from_cents(funds)} end]
         )
         funds
       _ -> []
