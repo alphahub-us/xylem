@@ -56,8 +56,9 @@ defmodule Xylem.Bot.Production do
   end
 
   defp cancel_and_replace({_id, {:cancel, order}}, %{name: name, venue: venue}) do
+    new_order = %{order | id: Ledger.generate_id(name), qty: Ledger.remaining_qty(order)}
     Venue.cancel_order(venue, order)
-    Venue.submit_order(venue, %{order | id: Ledger.generate_id(name)}, type: :market)
+    Venue.submit_order(venue, new_order, type: :market)
   end
   defp cancel_and_replace(_, _), do: :ok
 

@@ -326,4 +326,103 @@ defmodule Xylem.LedgerTest do
       assert [] == Ledger.prepare_orders(signals, "a", [])
     end
   end
+
+  describe "remaining_qty/1" do
+    test "works with no current position" do
+      base_update = %{type: :new, side: :buy, qty: 0, price: 0, symbol: "A", id: "xylem-a"}
+      Ledger.process_event(base_update)
+
+      order = %{id: "xylem-a", symbol: "A", qty: 5, side: :buy, price: Decimal.new("1.0")}
+      assert Ledger.remaining_qty(order) == 5
+    end
+    test "works with partially-filled open long positions" do
+      base_update = %{type: :new, side: :buy, qty: 0, price: 0, symbol: "A", id: "xylem-a"}
+      updates = [
+        base_update,
+        %{base_update | type: :partial, qty: 2}
+      ]
+      Enum.each(updates, &Ledger.process_event/1)
+
+      order = %{id: "xylem-a", symbol: "A", qty: 5, side: :buy, price: Decimal.new("1.0")}
+      assert Ledger.remaining_qty(order) == 3
+    end
+    test "works with partially-filled open short positions" do
+      base_update = %{type: :new, side: :sell, qty: 0, price: 0, symbol: "A", id: "xylem-a"}
+      updates = [
+        base_update,
+        %{base_update | type: :partial, qty: 2}
+      ]
+      Enum.each(updates, &Ledger.process_event/1)
+
+      order = %{id: "xylem-a", symbol: "A", qty: 5, side: :sell, price: Decimal.new("1.0")}
+      assert Ledger.remaining_qty(order) == 3
+    end
+    test "works with filled open long position, no close position" do
+      base_update = %{type: :new, side: :buy, qty: 0, price: 0, symbol: "A", id: "xylem-a"}
+      updates = [
+        base_update,
+        %{base_update | type: :partial, qty: 2},
+        %{base_update | type: :fill, qty: 3}
+      ]
+      Enum.each(updates, &Ledger.process_event/1)
+
+      order = %{id: "xylem-a", symbol: "A", qty: 5, side: :sell, price: Decimal.new("1.0")}
+      assert Ledger.remaining_qty(order) == 5
+    end
+    test "works with filled open short position, no close position" do
+      base_update = %{type: :new, side: :sell, qty: 0, price: 0, symbol: "A", id: "xylem-a"}
+      updates = [
+        base_update,
+        %{base_update | type: :partial, qty: 2},
+        %{base_update | type: :fill, qty: 3}
+      ]
+      Enum.each(updates, &Ledger.process_event/1)
+
+      order = %{id: "xylem-a", symbol: "A", qty: 5, side: :buy, price: Decimal.new("1.0")}
+      assert Ledger.remaining_qty(order) == 5
+    end
+    test "works with partially-filled close long positions" do
+      base_update = %{type: :new, side: :buy, qty: 0, price: 0, symbol: "A", id: "xylem-a"}
+      updates = [
+        base_update,
+        %{base_update | type: :partial, qty: 2},
+        %{base_update | type: :fill, qty: 3},
+        %{base_update | side: :sell},
+        %{base_update | side: :sell, type: :partial, qty: 2},
+      ]
+      Enum.each(updates, &Ledger.process_event/1)
+
+      order = %{id: "xylem-a", symbol: "A", qty: 5, side: :sell, price: Decimal.new("1.0")}
+      assert Ledger.remaining_qty(order) == 3
+    end
+    test "works with partially-filled close short positions" do
+      base_update = %{type: :new, side: :sell, qty: 0, price: 0, symbol: "A", id: "xylem-a"}
+      updates = [
+        base_update,
+        %{base_update | type: :partial, qty: 2},
+        %{base_update | type: :fill, qty: 3},
+        %{base_update | side: :buy},
+        %{base_update | side: :buy, type: :partial, qty: 2},
+      ]
+      Enum.each(updates, &Ledger.process_event/1)
+
+      order = %{id: "xylem-a", symbol: "A", qty: 5, side: :buy, price: Decimal.new("1.0")}
+      assert Ledger.remaining_qty(order) == 3
+    end
+    test "works with fully-filled position" do
+      base_update = %{type: :new, side: :sell, qty: 0, price: 0, symbol: "A", id: "xylem-a"}
+      updates = [
+        base_update,
+        %{base_update | type: :partial, qty: 2},
+        %{base_update | type: :fill, qty: 3},
+        %{base_update | side: :buy},
+        %{base_update | side: :buy, type: :partial, qty: 2},
+        %{base_update | side: :buy, type: :fill, qty: 3},
+      ]
+      Enum.each(updates, &Ledger.process_event/1)
+
+      order = %{id: "xylem-a", symbol: "A", qty: 5, side: :buy, price: Decimal.new("1.0")}
+      assert Ledger.remaining_qty(order) == 0
+    end
+  end
 end

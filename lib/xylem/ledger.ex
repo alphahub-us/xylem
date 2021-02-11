@@ -63,15 +63,6 @@ defmodule Xylem.Ledger do
   end
 
   @doc """
-  Calculates the net gain and remaining shares for a position.
-  """
-  def accumulate(updates) do
-    Enum.reduce(updates, {to_decimal(0), 0}, fn {price, qty}, {gain, shares} ->
-      {Decimal.sub(gain, Decimal.mult(qty, price)), shares + qty}
-    end)
-  end
-
-  @doc """
   Retrieves the last position on a symbol
   """
   def last_position(bot, symbol) do
@@ -140,6 +131,36 @@ defmodule Xylem.Ledger do
     Enum.join(["xylem", bot, group, id], "-")
   end
 
+  @doc """
+  Calculates the remaining quantity needed to fill an order
+  """
+  def remaining_qty(order = %{symbol: symbol, qty: qty, side: side}) do
+    with {:ok, bot} <- extract_bot_from_event(order),
+         {:ok, _, position} <- last_open_position(bot, symbol),
+         {_, current_qty} <- accumulate_side(position, side) do
+      qty - abs(current_qty)
+    else
+      {:error, _} -> 0
+    end
+  end
+
+  @doc """
+  Calculates the net gain and remaining shares for a position.
+  """
+  def accumulate(updates) do
+    Enum.reduce(updates, {to_decimal(0), 0}, fn {price, qty}, {gain, shares} ->
+      {Decimal.sub(gain, Decimal.mult(qty, price)), shares + qty}
+    end)
+  end
+
+  defp accumulate_side(updates, :buy) do
+    updates |> Enum.filter(&elem(&1, 1) > 0) |> accumulate()
+  end
+
+  defp accumulate_side(updates, :sell) do
+    updates |> Enum.filter(&elem(&1, 1) < 0) |> accumulate()
+  end
+
   defp generate_group(), do: hd tl String.split(UUID.uuid4(), "-")
 
   defp apply_gain(bot, positions) do
@@ -160,7 +181,7 @@ defmodule Xylem.Ledger do
   end
 
   defp add_quantity(signal = %{type: :close, symbol: symbol}, bot, positions) do
-    with {:ok, _key, position} = last_open_position(bot, symbol),
+    with {:ok, _key, position} <- last_open_position(bot, symbol),
          {_, qty} = accumulate(position),
          [%{qty: available}] <- Enum.filter(positions, & &1[:symbol] == symbol) do
       sign = if signal.side == :sell, do: 1, else: -1
