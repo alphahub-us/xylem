@@ -3,9 +3,7 @@ defmodule Xylem.Ledger do
 
   import NaiveDateTime, only: [diff: 3, add: 3, utc_now: 0, compare: 2]
 
-  def child_spec(opts) do
-    %{id: @db, start: {@db, :start_link, [opts]}}
-  end
+  def child_spec(opts), do: %{id: @db, start: {@db, :start_link, [opts]}}
 
   def start_link(options) do
     [data_dir: "/tmp/xylem", name: @db]
@@ -13,88 +11,47 @@ defmodule Xylem.Ledger do
     |> CubDB.start_link()
   end
 
-  def history(bot, type \\ :positions) do
-    case type do
-      :positions ->
-        {:ok, positions} = CubDB.select(
-          @db,
-          min_key: {type, bot, "", 0},
-          max_key: {type, bot, "ZZZZ", nil},
-          reverse: true,
-          pipe: [map: fn {{_,_,symbol,ts}, v} -> {from_epoch(ts), symbol, v} end]
-        )
-        positions
-        |> Enum.sort(fn {ts1, _, _}, {ts2, _, _} -> compare(ts1, ts2) in [:gt, :eq] end)
-      :funds ->
-        {:ok, funds} = CubDB.select(
-          @db,
-          min_key: {type, bot, 0},
-          max_key: {type, bot, nil},
-          reverse: true,
-          pipe: [map: fn {{_, _, ts}, funds} -> {from_epoch(ts), from_cents(funds)} end]
-        )
-        funds
-      _ -> []
+  @doc """
+  Provides a summary for a bot's history, sorted by newest event first.
+  """
+  @spec history(String.t) :: [tuple]
+  def history(bot), do: history(bot, :positions)
+
+  @spec history(String.t, :positions | :funds) :: [tuple]
+  def history(bot, :positions) do
+    prettify = fn {{_,_,symbol,ts}, v} -> {from_epoch(ts), symbol, v} end
+    {:ok, positions} = CubDB.select(@db, Keyword.merge(position_opts(bot), reverse: true, pipe: [map: prettify]))
+    Enum.sort(positions, fn {ts1, _, _}, {ts2, _, _} -> compare(ts1, ts2) in [:gt, :eq] end)
+  end
+
+  def history(bot, :funds) do
+    prettify = fn {{_, _, ts}, funds} -> {from_epoch(ts), from_cents(funds)} end
+    {:ok, funds} = CubDB.select(@db, Keyword.merge(fund_opts(bot), reverse: true, pipe: [map: prettify]))
+    funds
+  end
+
+  def history(_bot, _), do: []
+
+  @doc """
+  Gets the bot's current open position for a symbol as a two-element tuple
+  representing `{gain, shares}`.
+  """
+  def get_open_position(bot, symbol, opts \\ []) do
+    case last_open_position(bot, symbol) do
+      {:ok, _, position} -> {:ok, accumulate_side(position, Keyword.get(opts, :side))}
+      error -> error
     end
   end
 
   @doc """
-  Processes inbound order events
+  Gets the bot's last position for a symbol as a two-element tuple representing
+  `{gain, shares}`.
   """
-  @spec process_event(Xylem.Venue.order_event) :: :ok
-  def process_event(event) do
-    with {:ok, bot} <- extract_bot_from_event(event),
-         {:ok, type} <- Map.fetch(event, :type),
-         {:ok, symbol} <- Map.fetch(event, :symbol) do
-      case last_open_position(bot, symbol) do
-        {:error, :no_open_position} when type == :new ->
-          CubDB.put_new(@db, {:positions, bot, symbol, epoch()}, [])
-        {:ok, key, []} when type == :cancel ->
-          CubDB.delete(@db, key)
-        {:ok, key, positions} when type in [:partial, :fill] ->
-          new_positions = update_positions(positions, event)
-          CubDB.put(@db, key, new_positions)
-          apply_gain(bot, new_positions)
-        _ -> :ok
-      end
-    else
-      _ -> :ok
+  def get_position(bot, symbol, opts \\ []) do
+    case last_position(bot, symbol) do
+      {:ok, {_, position}} -> {:ok, accumulate_side(position, Keyword.get(opts, :side))}
+      error -> error
     end
-  end
-
-  @doc """
-  Retrieves the last position on a symbol
-  """
-  def last_position(bot, symbol) do
-    CubDB.select(@db,
-      reverse: true,
-      min_key: {:positions, bot, symbol, 0},
-      max_key: {:positions, bot, symbol, nil},
-      pipe: [take: 1]
-    )
-    |> case do
-      {:ok, [result]} -> {:ok, result}
-      _ -> {:error, :no_position}
-    end
-  end
-
-  @doc """
-  Prepares a batch of orders based on available positions and incoming signals.
-  """
-  def prepare_orders(signals, bot, positions) when is_list(signals) do
-    signals
-    |> Enum.map(&prepare_orders(&1, bot, positions))
-    |> List.flatten()
-  end
-
-  def prepare_orders(signal, bot, positions) do
-    signal
-    |> add_quantity(bot, positions)
-    |> List.wrap()
-    |> remove_invalid_orders()
-    |> add_ids(bot)
-    |> Enum.map(&Map.take(&1, [:symbol, :qty, :price, :side, :id]))
-    |> maybe_breakup()
   end
 
   @doc """
@@ -104,54 +61,36 @@ defmodule Xylem.Ledger do
     CubDB.put(@db, {:funds, bot, epoch()}, to_cents(funds))
   end
 
-  def set_funds(bot, funds) do
-    set_funds(bot, Decimal.to_float(funds))
-  end
+  def set_funds(bot, funds), do: set_funds(bot, Decimal.to_float(funds))
 
   @doc """
   Gets the funds available for a bot.
   """
   def get_funds(bot) do
-    CubDB.select(@db,
-      reverse: true,
-      min_key: {:funds, bot, 0},
-      max_key: {:funds, bot, nil},
-      pipe: [take: 1]
-    )
-    |> case do
+    case CubDB.select(@db, Keyword.merge(fund_opts(bot), reverse: true, pipe: [take: 1])) do
       {:ok, [{_, funds}]} -> {:ok, from_cents(funds)}
       _ -> {:error, :no_funds}
     end
   end
 
-  def generate_id(bot), do: generate_id(bot, generate_group())
-
-  def generate_id(bot, group) do
-    id = hd Enum.reverse(String.split(UUID.uuid4(), "-"))
-    Enum.join(["xylem", bot, group, id], "-")
-  end
-
   @doc """
-  Calculates the remaining quantity needed to fill an order
+  record an update in the Ledger
   """
-  def remaining_qty(order = %{symbol: symbol, qty: qty, side: side}) do
-    with {:ok, bot} <- extract_bot_from_event(order),
-         {:ok, _, position} <- last_open_position(bot, symbol),
-         {_, current_qty} <- accumulate_side(position, side) do
-      qty - abs(current_qty)
-    else
-      {:error, _} -> 0
+  def update(bot, details = %{symbol: symbol, type: type}) do
+    case last_open_position(bot, symbol) do
+      {:error, :no_open_position} when type == :new -> create_position(bot, symbol)
+      {:ok, key, []} when type == :cancel -> CubDB.delete(@db, key)
+      {:ok, key, pos} when type in [:partial, :fill] ->
+        new_pos = update_positions(pos, details)
+        CubDB.put(@db, key, new_pos)
+        apply_gain(bot, new_pos)
+      _ -> :ok
     end
   end
 
-  @doc """
-  Calculates the net gain and remaining shares for a position.
-  """
-  def accumulate(updates) do
-    Enum.reduce(updates, {to_decimal(0), 0}, fn {price, qty}, {gain, shares} ->
-      {Decimal.sub(gain, Decimal.mult(qty, price)), shares + qty}
-    end)
-  end
+  def update(_, _), do: :ok
+
+  defp create_position(bot, sym), do: CubDB.put_new(@db, {:positions, bot, sym, epoch()}, [])
 
   defp accumulate_side(updates, :buy) do
     updates |> Enum.filter(&elem(&1, 1) > 0) |> accumulate()
@@ -161,7 +100,13 @@ defmodule Xylem.Ledger do
     updates |> Enum.filter(&elem(&1, 1) < 0) |> accumulate()
   end
 
-  defp generate_group(), do: hd tl String.split(UUID.uuid4(), "-")
+  defp accumulate_side(updates, _), do: updates |> accumulate()
+
+  defp accumulate(updates) do
+    Enum.reduce(updates, {to_decimal(0), 0}, fn {price, qty}, {gain, shares} ->
+      {Decimal.sub(gain, Decimal.mult(qty, price)), shares + qty}
+    end)
+  end
 
   defp apply_gain(bot, positions) do
     with {:ok, funds} <- get_funds(bot),
@@ -175,51 +120,6 @@ defmodule Xylem.Ledger do
   defp to_cents(funds), do: round(Float.round(funds, 2) * 100)
   defp from_cents(funds), do: Decimal.div(to_decimal(funds), 100)
 
-  defp add_ids(orders, bot) do
-    group = generate_group()
-    Enum.map(orders, &Map.put(&1, :id, generate_id(bot, group)))
-  end
-
-  defp add_quantity(signal = %{type: :close, symbol: symbol}, bot, positions) do
-    with {:ok, _key, position} <- last_open_position(bot, symbol),
-         {_, qty} = accumulate(position),
-         [%{qty: available}] <- Enum.filter(positions, & &1[:symbol] == symbol) do
-      sign = if signal.side == :sell, do: 1, else: -1
-      qty = sign * qty
-      available = sign * available
-      [Map.put(signal, :qty, min(qty, available)), Map.put(signal, :qty, qty - max(0, available))]
-    else
-      _ -> Map.put(signal, :qty, 0)
-    end
-  end
-
-  defp add_quantity(signal = %{type: :open}, bot, _positions) do
-    with {:ok, funds} <- get_funds(bot) do
-      Map.put(signal, :qty, qty_from_funds(funds, signal.price, signal.weight))
-    else
-      _ -> Map.put(signal, :qty, 0)
-    end
-  end
-
-  defp qty_from_funds(funds, price, weight) do
-    funds
-    |> Decimal.div(price)
-    |> Decimal.mult(weight)
-    |> Decimal.round(0, :floor)
-    |> Decimal.to_integer()
-  end
-
-  defp remove_invalid_orders(orders) do
-    Enum.filter(orders, & &1[:qty] > 0)
-  end
-
-  defp maybe_breakup(signal), do: signal
-
-  defp extract_bot_from_event(%{id: "xylem-" <> rest}) do
-    {:ok, rest |> String.split("-") |> hd()}
-  end
-  defp extract_bot_from_event(_), do: {:error, :no_bot}
-
   defp epoch(), do: diff(utc_now(), ~N[1970-01-01 00:00:00], :millisecond)
   defp from_epoch(ts), do: add(~N[1970-01-01 00:00:00], ts, :millisecond)
 
@@ -232,6 +132,13 @@ defmodule Xylem.Ledger do
     end
   end
 
+  defp last_position(bot, symbol) do
+    case CubDB.select(@db, Keyword.merge(position_opts(bot, symbol), reverse: true, pipe: [take: 1])) do
+      {:ok, [result]} -> {:ok, result}
+      _ -> {:error, :no_position}
+    end
+  end
+
   defp update_positions(current, update = %{side: :sell}) do
     update_positions(current, Map.delete(%{update | qty: update.qty * -1}, :side))
   end
@@ -240,15 +147,14 @@ defmodule Xylem.Ledger do
     update_positions(current, Map.delete(update, :side))
   end
 
-  defp update_positions([], %{qty: qty, price: price}) do
-    [{to_decimal(price), qty}]
-  end
-
-  defp update_positions(updates, %{qty: qty, price: price}) do
-    [{to_decimal(price), qty} | updates]
-  end
+  defp update_positions(updates, %{qty: qty, price: price}), do: [{to_decimal(price), qty} | updates]
 
   defp to_decimal(price) when is_integer(price), do: Decimal.new(price)
   defp to_decimal(price) when is_float(price), do: Decimal.from_float(price)
   defp to_decimal(price), do: price
+
+  defp fund_opts(bot), do: [min_key: {:funds, bot, 0}, max_key: {:funds, bot, nil}]
+
+  defp position_opts(bot), do: [min_key: {:positions, bot, "", 0}, max_key: {:positions, bot, "~", nil}]
+  defp position_opts(bot, sym), do: [min_key: {:positions, bot, sym, 0}, max_key: {:positions, bot, sym, nil}]
 end

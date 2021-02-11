@@ -2,7 +2,7 @@ defmodule Xylem.Bot.Production do
 
   use GenServer
 
-  alias Xylem.{Bot, Venue, Ledger, Conditions, Data}
+  alias Xylem.{Bot, Venue, Orders, Conditions, Data}
   alias Decimal, as: D
 
   def start_link(config), do: GenServer.start_link(__MODULE__, config)
@@ -14,7 +14,7 @@ defmodule Xylem.Bot.Production do
   def handle_info({:signal, signals}, state = %{venue: venue, name: name}) do
     IO.inspect(signals, label: "[#{name}] signals")
     positions = Venue.get_positions(venue)
-    orders = Ledger.prepare_orders(signals, name, positions) |> IO.inspect(label: "[#{name}] orders")
+    orders = Orders.prepare(signals, name, positions) |> IO.inspect(label: "[#{name}] orders")
     Enum.each(orders, fn order ->
       Conditions.add(order, {condition_for(order), {:cancel, order}}, 60_000)
       Venue.submit_order(venue, order, type: :limit)
@@ -37,7 +37,7 @@ defmodule Xylem.Bot.Production do
       Data.unsubscribe(data, topic)
     end
     Xylem.Logger.record_order_event(name, update, &Venue.event_to_csv/1)
-    Ledger.process_event(update)
+    Orders.process_event(update)
     {:noreply, state}
   end
 
@@ -56,7 +56,7 @@ defmodule Xylem.Bot.Production do
   end
 
   defp cancel_and_replace({_id, {:cancel, order}}, %{name: name, venue: venue}) do
-    new_order = %{order | id: Ledger.generate_id(name), qty: Ledger.remaining_qty(order)}
+    new_order = %{order | id: Orders.generate_id(name), qty: Orders.get_remaining_qty(order)}
     Venue.cancel_order(venue, order)
     Venue.submit_order(venue, new_order, type: :market)
   end
