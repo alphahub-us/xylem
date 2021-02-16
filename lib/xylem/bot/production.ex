@@ -25,7 +25,7 @@ defmodule Xylem.Bot.Production do
 
   def handle_info({:data, data}, state = %{name: name}) do
     IO.inspect(data, label: "[#{name}] market data")
-    Enum.each(data, &check_off(&1, state))
+    Enum.each(List.wrap(data), &check_off(&1, state))
     {:noreply, state}
   end
 
