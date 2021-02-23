@@ -113,6 +113,7 @@ defmodule Xylem.Signal.AlphaHub do
     signals
     |> Enum.map(fn
       {type, signals} when is_list(signals) and length(signals) > 0 ->
+        signals = Enum.reject(signals, & &1["side"] == "hold")
         defaults = [type: String.to_existing_atom(type), weight: default_weight(signals)]
         Enum.map(signals, &normalize(&1, defaults))
       _ ->
