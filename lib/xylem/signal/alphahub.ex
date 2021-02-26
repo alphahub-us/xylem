@@ -4,6 +4,8 @@ defmodule Xylem.Signal.AlphaHub do
   @default_opts [certificates_verification: true, timeout: 5_000]
   @behaviour Xylem.Signal
 
+  require Logger
+
   @impl Xylem.Signal
   def topic(options) do
     case Keyword.fetch(options, :id) do
@@ -86,12 +88,12 @@ defmodule Xylem.Signal.AlphaHub do
   def handle_receive(:close, state), do: {:close, state}
 
   def handle_receive({:close, 1000, _}, state) do
-    IO.puts "AlphaHub socket closed normally"
+    Logger.warn "AlphaHub socket closed normally"
     {:close, state}
   end
 
   def handle_other({:subscribe, []}, state) do
-    IO.puts "listening for AlphaHub signals..."
+    Logger.debug "listening for AlphaHub signals..."
     Process.send_after(self(), :send_heartbeat, 30_000)
     {:nosend, state}
   end

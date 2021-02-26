@@ -28,14 +28,14 @@ defmodule Xylem.Venue.Alpaca.Socket do
       %{"stream" => "authorization", "data" => %{"status" => "unauthorized"}} ->
         {:close, state}
       %{"stream" => "listening"} ->
-        IO.puts "listening for Alpaca account updates"
+        Logger.debug "listening for '#{state.name}' Alpaca account updates"
         {:nosend, state}
       %{"stream" => "trade_updates", "data" => data} ->
         {:ok, topic} = Xylem.Venue.Alpaca.topic(Map.to_list(state))
         Xylem.Channel.broadcast(topic, {:venue, normalize(data)})
         {:nosend, state}
       other ->
-        IO.inspect(other, label: "inbound message")
+        Logger.info "inbound message: #{inspect other}"
         {:nosend, state}
     end
   end
