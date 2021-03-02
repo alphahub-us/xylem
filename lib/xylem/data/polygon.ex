@@ -64,9 +64,9 @@ defmodule Xylem.Data.Polygon do
     |> Jason.decode!()
     |> case do
       [%{"ev" => "status", "status" => "connected"}] ->
-        {:send, json_frame(%{action: "auth", params: state["key"]}), Map.delete(state, "key")}
-      [%{"ev" => "status", "status" => "auth_success"}] when map_size(state) > 1 ->
-        tickers = Map.keys(state) -- ["ready"]
+        {:send, json_frame(%{action: "auth", params: state["key"]}), state}
+      [%{"ev" => "status", "status" => "auth_success"}] when map_size(state) > 2 ->
+        tickers = Map.keys(state) -- ["ready", "key"]
         Logger.debug "Polygon successfully authenticated, subscribing to: #{inspect tickers}"
         {:send, subscribe_frame(tickers), %{state | "ready" => true}}
       [%{"ev" => "status", "status" => "auth_success"}] ->
