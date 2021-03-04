@@ -8,28 +8,28 @@ defmodule Xylem.Bot.Production do
   def start_link(config), do: GenServer.start_link(__MODULE__, config)
 
   @impl true
-  def init(config), do: Bot.init(config)
+  def init(config) do
+    {:ok, cfg} = Bot.init(config)
+    {:ok, %{config: cfg, queue: %{}}}
+  end
 
   @impl true
-  def handle_info({:signal, signals}, state = %{venue: venue, name: name}) do
+  def handle_info({:signal, signals}, state) do
+    %{venue: venue, name: name} = Map.take(state.config, [:venue, :name])
     IO.inspect(signals, label: "[#{name}] signals")
     positions = Venue.get_positions(venue)
     orders = Orders.prepare(signals, name, positions) |> IO.inspect(label: "[#{name}] orders")
-    Enum.each(orders, fn order ->
-      Conditions.add(order, {condition_for(order), {:cancel, order}}, 60_000)
-      Venue.submit_order(venue, order, type: :limit)
-    end)
 
-    {:noreply, state}
+    {:noreply, enqueue_orders(orders, state)}
   end
 
-  def handle_info({:data, data}, state = %{name: name}) do
+  def handle_info({:data, data}, state = %{config: %{name: name}}) do
     IO.inspect(data, label: "[#{name}] market data")
-    Enum.each(List.wrap(data), &check_off(&1, state))
-    {:noreply, state}
+    {:noreply, Enum.reduce(List.wrap(data), state, &check_off/2)}
   end
 
-  def handle_info({:venue, update = %{symbol: symbol}}, state = %{name: name, data: data}) do
+  def handle_info({:venue, update = %{symbol: symbol}}, state) do
+    %{name: name, data: data} = Map.take(state.config, [:name, :data])
     IO.inspect(update, label: "[#{name}] venue update")
     with {:ok, type} when type in [:fill, :cancel] <- Map.fetch(update, :type),
          ref when not is_reference(ref) <- Conditions.remove(update),
@@ -38,29 +38,54 @@ defmodule Xylem.Bot.Production do
     end
     Xylem.Logger.record_order_event(name, update, &Venue.event_to_csv/1)
     Orders.process_event(update)
-    {:noreply, state}
+    {:noreply, handle_event(update, state)}
   end
 
-  def handle_info({:condition_added, %{symbol: symbol}, _condition}, state = %{data: data}) do
+  def handle_info({:condition_added, %{symbol: symbol}, _}, state = %{config: %{data: data}}) do
     with {:ok, topic} <- Data.topic(data, symbol) do
       Data.subscribe(data, topic)
     end
     {:noreply, state}
   end
 
-  defp check_off(%{symbol: symbol, price: price}, state = %{name: name}) do
-    case Conditions.check_off(name, {:price, symbol, price}) do
-      {:ok, list} -> Enum.each(list, &cancel_and_replace(&1, state))
-      _ -> :ok
+  defp handle_event(%{type: :fill, id: id}, state) do
+    case pop_in(state, [:queue, id]) do
+      {nil, state} -> state
+      {other_orders, state} -> enqueue_orders(other_orders, state)
     end
   end
 
-  defp cancel_and_replace({_id, {:cancel, order}}, %{name: name, venue: venue}) do
+  defp handle_event(_, state), do: state
+
+  defp enqueue_orders(orders, state = %{config: %{venue: venue}}) do
+    orders
+    |> Enum.group_by(&{Map.get(&1, :symbol), Map.get(&1, :side)})
+    |> Map.values()
+    |> Enum.reduce(state, fn [order | rest], state ->
+      Conditions.add(order, {condition_for(order), {:cancel, order}}, 60_000)
+      Venue.submit_order(venue, order, type: :limit)
+      if rest != [], do: put_in(state, [:queue, order.id], rest), else: state
+    end)
+  end
+
+  defp check_off(%{symbol: symbol, price: price}, state = %{config: %{name: name}}) do
+    case Conditions.check_off(name, {:price, symbol, price}) do
+      {:ok, list} -> Enum.reduce(list, state, &cancel_and_replace/2)
+      _ -> state
+    end
+  end
+
+  defp cancel_and_replace({id, {:cancel, order}}, state) do
+    %{name: name, venue: venue} = Map.take(state.config, [:name, :venue])
     new_order = %{order | id: Orders.generate_id(name), qty: Orders.get_remaining_qty(order)}
     Venue.cancel_order(venue, order)
     Venue.submit_order(venue, new_order, type: :market)
+    case pop_in(state, [:queue, id]) do
+      {nil, state} -> state
+      {orders, state} -> put_in(state, [:queue, new_order.id], orders)
+    end
   end
-  defp cancel_and_replace(_, _), do: :ok
+  defp cancel_and_replace(_, state), do: state
 
   defp condition_for(%{side: :buy, price: price}), do: {:gt, D.mult(price, D.new("1.0033"))}
   defp condition_for(%{side: :sell, price: price}), do: {:lt, D.mult(price, D.new("0.9967"))}
