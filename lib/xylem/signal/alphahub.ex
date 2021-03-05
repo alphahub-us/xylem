@@ -127,11 +127,14 @@ defmodule Xylem.Signal.AlphaHub do
   defp normalize(signal, defaults) do
     keys = [:type, :symbol, :price, :side, :weight]
 
-    signal = signal |> Enum.into(%{}, &normalize_pair/1) |> Map.take(keys)
+    signal = signal |> Enum.into(%{}, &normalize_pair/1) |> Map.take(keys) |> fix_invalid_symbols()
     defaults = defaults |> Keyword.take(keys) |> Enum.into(%{})
 
     Map.merge(defaults, signal)
   end
+
+  defp fix_invalid_symbols(signal = %{symbol: "MYL"}), do: %{signal | symbol: "VTRS"}
+  defp fix_invalid_symbols(signal), do: signal
 
   defp normalize_pair({k,v}), do: {String.to_existing_atom(k), normalize_value(k,v)}
 
