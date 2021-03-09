@@ -55,6 +55,7 @@ defmodule Xylem.Venue.Alpaca.Socket do
   defp normalize(:type, %{"event" => "fill"}), do: :fill
   defp normalize(:type, %{"event" => "new"}), do: :new
   defp normalize(:type, %{"event" => "canceled"}), do: :cancel
+  defp normalize(:type, %{"event" => "pending_cancel"}), do: :pending_cancel
   defp normalize(:symbol, %{"order" => %{"symbol" => symbol}}), do: symbol
   defp normalize(:side, %{"order" => %{"side" => side}}), do: String.to_existing_atom(side)
   defp normalize(:qty, %{"qty" => qty}), do: parse_qty(qty)
