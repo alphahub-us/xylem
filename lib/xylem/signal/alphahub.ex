@@ -142,6 +142,7 @@ defmodule Xylem.Signal.AlphaHub do
   defp normalize_value(k, v) when k in ["type", "side"], do: String.to_existing_atom(v)
   defp normalize_value(_, v), do: v
 
+  defp default_weight([]), do: Decimal.new("0")
   defp default_weight(signals), do: Decimal.div(Decimal.new(1), Decimal.new(length(signals)))
 
   defp to_decimal(price) when is_float(price), do: Decimal.from_float(price)
