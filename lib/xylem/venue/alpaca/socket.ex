@@ -16,7 +16,7 @@ defmodule Xylem.Venue.Alpaca.Socket do
   end
 
   def handle_upgrade(_conn, %{credentials: %{id: id, secret: secret}} = state) do
-    {:send, json_frame(%{action: "authenticate", data: %{key_id: id, secret_key: secret}}), Map.delete(state, :credentials)}
+    {:send, json_frame(%{action: "authenticate", data: %{key_id: id, secret_key: secret}}), state}
   end
 
   def handle_receive({type, content}, state) when type in [:text, :binary] do
