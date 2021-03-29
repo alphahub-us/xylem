@@ -25,7 +25,8 @@ defmodule Xylem.Bot.Production do
 
   def handle_info({:data, data}, state = %{config: %{name: name}}) do
     IO.inspect(data, label: "[#{name}] market data")
-    {:noreply, Enum.reduce(List.wrap(data), state, &check_off/2)}
+    Enum.each(List.wrap(data), &check_off(&1, state))
+    {:noreply, state}
   end
 
   def handle_info({:venue, update = %{symbol: symbol}}, state) do
@@ -44,6 +45,17 @@ defmodule Xylem.Bot.Production do
   def handle_info({:condition_added, %{symbol: symbol}, _}, state = %{config: %{data: data}}) do
     with {:ok, topic} <- Data.topic(data, symbol) do
       Data.subscribe(data, topic)
+    end
+    {:noreply, state}
+  end
+
+  def handle_info({:submit_market, order, qty}, state) do
+    %{name: name, venue: venue} = Map.take(state.config, [:name, :venue])
+    new_order = %{order | id: Orders.generate_id(name), qty: qty} |> IO.inspect(label: "market order")
+    Venue.submit_order(venue, new_order, type: :market) |> IO.inspect(label: "market order submission")
+    state = case pop_in(state, [:queue, order.id]) do
+      {nil, state} -> state
+      {orders, state} -> put_in(state, [:queue, new_order.id], orders)
     end
     {:noreply, state}
   end
@@ -69,23 +81,18 @@ defmodule Xylem.Bot.Production do
   end
 
   defp check_off(%{symbol: symbol, price: price}, state = %{config: %{name: name}}) do
-    case Conditions.check_off(name, {:price, symbol, price}) do
-      {:ok, list} -> Enum.reduce(list, state, &cancel_and_replace/2)
-      _ -> state
+    with {:ok, list} <- Conditions.check_off(name, {:price, symbol, price}) do
+      Enum.each(list, &cancel_and_replace(&1, state))
     end
   end
 
-  defp cancel_and_replace({id, {:cancel, order}}, state) do
-    %{name: name, venue: venue} = Map.take(state.config, [:name, :venue])
-    new_order = %{order | id: Orders.generate_id(name), qty: Orders.get_remaining_qty(order)}
+  defp cancel_and_replace({_id, {:cancel, order}}, %{config: %{venue: venue}}) do
+    qty = Orders.get_remaining_qty(order)
     Venue.cancel_order(venue, order)
-    Venue.submit_order(venue, new_order, type: :market)
-    case pop_in(state, [:queue, id]) do
-      {nil, state} -> state
-      {orders, state} -> put_in(state, [:queue, new_order.id], orders)
-    end
+    Process.send_after(self(), {:submit_market, order, qty}, 5_000)
   end
-  defp cancel_and_replace(_, state), do: state
+
+  defp cancel_and_replace(_, _), do: :ok
 
   defp condition_for(%{side: :buy, price: price}), do: {:gt, D.mult(price, D.new("1.0033"))}
   defp condition_for(%{side: :sell, price: price}), do: {:lt, D.mult(price, D.new("0.9967"))}
