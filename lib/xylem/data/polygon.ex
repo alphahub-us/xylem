@@ -68,9 +68,11 @@ defmodule Xylem.Data.Polygon do
       [%{"ev" => "status", "status" => "auth_success"}] when map_size(state) > 2 ->
         tickers = Map.keys(state) -- ["ready", "key"]
         Logger.debug "Polygon successfully authenticated, subscribing to: #{inspect tickers}"
+        Process.send_after(self(), :restart, :timer.hours(8))
         {:send, subscribe_frame(tickers), %{state | "ready" => true}}
       [%{"ev" => "status", "status" => "auth_success"}] ->
         Logger.debug "Polygon successfully authenticated, awaiting subscriptions"
+        Process.send_after(self(), :restart, :timer.hours(8))
         {:nosend, %{state | "ready" => true}}
       [%{"ev" => "status", "status" => "success"}] ->
         {:nosend, state}
@@ -117,6 +119,12 @@ defmodule Xylem.Data.Polygon do
       {1, new_state} -> {:send, unsubscribe_frame(ticker), new_state}
       {_value, new_state} -> {:nosend, new_state}
     end
+  end
+
+  def handle_other(:restart, state) do
+    Logger.debug "restarting WebSocket connection to Polygon"
+    Process.exit(self(), :normal)
+    {:nosend, state}
   end
 
   defp increment_ticker_count(state, ticker) do

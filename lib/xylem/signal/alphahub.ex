@@ -94,7 +94,8 @@ defmodule Xylem.Signal.AlphaHub do
 
   def handle_other({:subscribe, []}, state) do
     Logger.debug "listening for AlphaHub signals..."
-    Process.send_after(self(), :send_heartbeat, 30_000)
+    Process.send_after(self(), :restart, :timer.hours(8))
+    Process.send_after(self(), :send_heartbeat, :timer.seconds(30))
     {:nosend, state}
   end
 
@@ -105,8 +106,14 @@ defmodule Xylem.Signal.AlphaHub do
 
   # Need to send a heartbeat signal to keep the connection open for longer than a minute
   def handle_other(:send_heartbeat, state) do
-    Process.send_after(self(), :send_heartbeat, 30_000)
+    Process.send_after(self(), :send_heartbeat, :timer.seconds(30))
     {:send, json_frame([nil, nil, "phoenix", "heartbeat", %{}]), state}
+  end
+
+  def handle_other(:restart, state) do
+    Logger.debug "restarting WebSocket connection to AlphaHub"
+    Process.exit(self(), :normal)
+    {:nosend, state}
   end
 
   defp json_frame(contents), do: {:text, Jason.encode!(contents)}

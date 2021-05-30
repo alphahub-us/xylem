@@ -26,9 +26,11 @@ defmodule Xylem.Venue.Alpaca.Socket do
       %{"stream" => "authorization", "data" => %{"status" => "authorized"}} ->
         {:send, json_frame(%{action: "listen", data: %{streams: ["trade_updates"]}}), state}
       %{"stream" => "authorization", "data" => %{"status" => "unauthorized"}} ->
+        Logger.warn "'#{state.name}' Alpaca account unauthorized"
         {:close, state}
       %{"stream" => "listening"} ->
         Logger.debug "listening for '#{state.name}' Alpaca account updates"
+        Process.send_after(self(), :restart, :timer.hours(8))
         {:nosend, state}
       %{"stream" => "trade_updates", "data" => data} ->
         {:ok, topic} = Xylem.Venue.Alpaca.topic(Map.to_list(state))
@@ -40,7 +42,16 @@ defmodule Xylem.Venue.Alpaca.Socket do
     end
   end
 
-  def handle_receive(:close, state), do: {:close, state}
+  def handle_receive(:close, state) do
+    Logger.warn "closing connection to '#{state.name}' Alpaca account"
+    {:close, state}
+  end
+
+  def handle_other(:restart, state) do
+    Logger.debug "restarting WebSocket connection to '#{state.name}' Alpaca account"
+    Process.exit(self(), :normal)
+    {:nosend, state}
+  end
 
   defp normalize(update) do
     Logger.debug "unnormalized update: #{inspect update}"
